@@ -1,0 +1,6 @@
+CREATE TABLE commitments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  weekly_target_hours REAL NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1
+);
