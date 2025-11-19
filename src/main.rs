@@ -1,29 +1,61 @@
-use clap::{Parser, Subcommand};
+mod cli;
+mod db;
 
-/// Weekly commitment tracker
-#[derive(Parser)]
-#[command(
-    name = "Weekly Progress Tracker",
-    about = "Track weekly commitments and hours",
-    version = "0.0.1",
-    author = "Isaac Leong"
-)]
-#[derive(Debug)]
-pub struct Cli {
-    #[command(subcommand)]
-    pub command: Commands,
-}
+use clap::Parser;
+use cli::Cli;
+use db::open_db;
 
-#[derive(Subcommand, Debug)]
-pub enum Commands {
-    Add { name: String, weekly_hours: f32 },
-    Remove { id: u32 },
-    Log { id: u32, hours: f32 },
-    List,
-    History { id: u32 },
-}
+use crate::{
+    cli::Commands,
+    db::{add_commitment, archive_commiment, list_commitments},
+};
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
-    println!("{:#?}", cli);
+
+    let pool = open_db().await;
+
+    match cli.command {
+        Commands::Add { name, weekly_hours } => {
+            let id = add_commitment(&pool, &name, weekly_hours).await?;
+
+            println!(
+                "Added commitment #{id}: '{}' ({} hours/week)",
+                name, weekly_hours
+            );
+        }
+
+        Commands::Archive { id } => {
+            let num_archived = archive_commiment(&pool, id).await?;
+            if num_archived > 0 {
+                println!("Marked commitment #{id} as inactive. (Affected {num_archived} rows)");
+            } else {
+                eprintln!("No active commitment with id {id}.")
+            }
+        }
+
+        Commands::List => {
+            let commitments = list_commitments(&pool).await;
+            if commitments.is_empty() {
+                println!("No active commiments.");
+            } else {
+                println!("Active commiments:\n");
+                for commitment in commitments {
+                    println!(
+                        "[#{id}] {name}\n Target: {hours:.1} hours/week\n",
+                        id = commitment.id,
+                        name = commitment.name,
+                        hours = commitment.weekly_target_hours
+                    )
+                }
+            }
+        }
+
+        x => {
+            println!("{:?} not implemented yet.", x);
+        }
+    }
+
+    Ok(())
 }
