@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use chrono::{Datelike, Duration, Local};
 use sqlx::{Pool, Sqlite, sqlite::SqlitePoolOptions};
 
 // use dirs;
@@ -36,14 +37,24 @@ pub async fn add_commitment(
     name: &str,
     weekly_hours: f64,
 ) -> Result<i64, sqlx::Error> {
+    let today = Local::now().date_naive();
+    let today_str = today.to_string();
+    let weekday = today.weekday().num_days_from_monday() as i64;
+
+    // Monday of upcoming week
+    let week_start = today - Duration::days(weekday - 7);
+    let week_start_str = week_start.to_string();
+
     let row = sqlx::query!(
         r#"
-        INSERT INTO commitments (name, weekly_target_hours, active) 
-        VALUES (?1, ?2, 1)
+        INSERT INTO commitments (name, weekly_target_hours, active, created_at, start_week_monday) 
+        VALUES (?1, ?2, 1, ?3, ?4)
         RETURNING id;
         "#,
         name,
-        weekly_hours
+        weekly_hours,
+        today_str,
+        week_start_str
     )
     .fetch_one(pool)
     .await?;
@@ -57,6 +68,21 @@ pub async fn archive_commiment(pool: &Pool<Sqlite>, id: i64) -> Result<u64, sqlx
         UPDATE commitments
         SET active = 0
         WHERE id = ?1 AND active = 1;
+        "#,
+        id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected())
+}
+
+pub async fn reactivate_commiment(pool: &Pool<Sqlite>, id: i64) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        UPDATE commitments
+        SET active = 1
+        WHERE id = ?1 AND active = 0;
         "#,
         id
     )

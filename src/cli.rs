@@ -18,6 +18,7 @@ pub struct Cli {
 pub enum Commands {
     Add { name: String, weekly_hours: f64 },
     Archive { id: i64 },
+    Reactivate { id: i64 },
     Log { id: i64, hours: f32 },
     List,
     History { id: i64 },

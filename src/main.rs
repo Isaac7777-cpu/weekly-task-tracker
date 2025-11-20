@@ -7,7 +7,7 @@ use db::open_db;
 
 use crate::{
     cli::Commands,
-    db::{add_commitment, archive_commiment, list_commitments},
+    db::{add_commitment, archive_commiment, list_commitments, reactivate_commiment},
 };
 
 #[tokio::main]
@@ -32,6 +32,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("Marked commitment #{id} as inactive. (Affected {num_archived} rows)");
             } else {
                 eprintln!("No active commitment with id {id}.")
+            }
+        }
+
+        Commands::Reactivate { id } => {
+            let num_reactivated = reactivate_commiment(&pool, id).await?;
+            if num_reactivated > 0 {
+                println!("Marked commitment #{id} as active. (Affected {num_reactivated} rows)");
+            } else {
+                eprintln!("No inactive commiment with id {id}.");
             }
         }
 
