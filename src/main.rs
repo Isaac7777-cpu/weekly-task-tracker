@@ -7,7 +7,10 @@ use db::open_db;
 
 use crate::{
     cli::Commands,
-    db::{add_commitment, archive_commiment, list_commitments, reactivate_commiment},
+    db::{
+        add_commitment, archive_commiment, list_commitments, log_record, log_record_id,
+        reactivate_commiment,
+    },
 };
 
 #[tokio::main]
@@ -59,6 +62,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     )
                 }
             }
+        }
+
+        Commands::LogID {
+            id: commitment_id,
+            hours,
+        } => {
+            let id = log_record_id(&pool, commitment_id, hours).await?;
+
+            println!("Logged record #{id} for commitment #{commitment_id} for {hours} hours.");
+        }
+
+        Commands::Log { name, hours } => {
+            let id = log_record(&pool, name.as_str(), hours).await?;
+
+            println!("Logged record #{id} for commitment '{name}' for {hours} hours.");
         }
 
         x => {

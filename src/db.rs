@@ -114,3 +114,47 @@ pub async fn list_commitments(pool: &Pool<Sqlite>) -> Vec<Commitment> {
         })
         .collect()
 }
+
+pub async fn log_record(pool: &Pool<Sqlite>, name: &str, hours: f32) -> Result<i64, sqlx::Error> {
+    let log_time = Local::now().date_naive().to_string();
+
+    let row = sqlx::query!(
+        r#"
+        INSERT INTO progress_logs (commitment_id, hours, logged_at) 
+        SELECT id, ?2, ?3
+        FROM commitments
+        WHERE name = ?1 AND active = 1
+        RETURNING id;
+        "#,
+        name,
+        hours,
+        log_time
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.id)
+}
+
+pub async fn log_record_id(
+    pool: &Pool<Sqlite>,
+    commitment_id: i64,
+    hours: f32,
+) -> Result<i64, sqlx::Error> {
+    let log_time = Local::now().date_naive().to_string();
+
+    let row = sqlx::query!(
+        r#"
+        INSERT INTO progress_logs (commitment_id, hours, logged_at) 
+        VALUES (?1, ?2, ?3)
+        RETURNING id;
+        "#,
+        commitment_id,
+        hours,
+        log_time
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.id)
+}
