@@ -8,8 +8,8 @@ use db::open_db;
 use crate::{
     cli::Commands,
     db::{
-        add_commitment, archive_commiment, list_commitments, log_record, log_record_id,
-        reactivate_commiment,
+        add_commitment, archive_commiment, current_week_progress_by_id, get_commitment,
+        list_commitments, log_record, log_record_id, reactivate_commiment,
     },
 };
 
@@ -77,6 +77,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let id = log_record(&pool, name.as_str(), hours).await?;
 
             println!("Logged record #{id} for commitment '{name}' for {hours} hours.");
+        }
+
+        Commands::TrackID { id } => {
+            let week_total = current_week_progress_by_id(&pool, id).await?;
+            let commitment = get_commitment(&pool, id).await?;
+
+            if let Some(wk) = week_total
+                && let Some(ct) = commitment
+            {
+                if !ct.active {
+                    eprintln!("The activity is currently not active.");
+                }
+
+                println!(
+                    "Current week progress for task '{}' is {}/{}",
+                    ct.name, wk, ct.weekly_target_hours
+                );
+            } else if commitment.is_none() {
+                eprintln!("Cannot find commitment #{id}.");
+            } else if week_total.is_none() {
+                let ct = commitment.unwrap();
+                eprintln!("You have not started on task '{}' this week.", ct.name);
+            }
         }
 
         x => {

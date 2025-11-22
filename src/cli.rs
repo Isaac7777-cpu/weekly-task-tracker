@@ -19,8 +19,9 @@ pub enum Commands {
     Add { name: String, weekly_hours: f64 },
     Archive { id: i64 },
     Reactivate { id: i64 },
+    List,
     Log { name: String, hours: f32 },
     LogID { id: i64, hours: f32 },
-    List,
+    TrackID { id: i64 },
     History { id: i64 },
 }

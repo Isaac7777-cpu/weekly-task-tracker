@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use chrono::{Datelike, Duration, Local};
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use sqlx::{Pool, Sqlite, sqlite::SqlitePoolOptions};
 
 // use dirs;
@@ -19,6 +19,16 @@ fn db_path() -> PathBuf {
     std::fs::create_dir_all(&path).unwrap();
     path.push("weekly_commit.db");
     path
+}
+
+fn current_week_bounds() -> (NaiveDate, NaiveDate) {
+    let today = Local::now().date_naive();
+    let weekday = today.weekday().num_days_from_monday() as i64;
+
+    let week_start = today - Duration::days(weekday);
+    let next_week_start = week_start + Duration::days(7);
+
+    (week_start, next_week_start)
 }
 
 pub async fn open_db() -> Pool<Sqlite> {
@@ -92,6 +102,32 @@ pub async fn reactivate_commiment(pool: &Pool<Sqlite>, id: i64) -> Result<u64, s
     Ok(result.rows_affected())
 }
 
+pub async fn get_commitment(
+    pool: &Pool<Sqlite>,
+    id: i64,
+) -> Result<Option<Commitment>, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT id, name, weekly_target_hours, active
+        FROM commitments
+        WHERE id == ?1
+        "#,
+        id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    match row {
+        Some(r) => Ok(Some(Commitment {
+            id: r.id,
+            name: r.name,
+            weekly_target_hours: r.weekly_target_hours,
+            active: r.active != 0,
+        })),
+        None => Ok(None),
+    }
+}
+
 pub async fn list_commitments(pool: &Pool<Sqlite>) -> Vec<Commitment> {
     let rows = sqlx::query!(
         r#"
@@ -157,4 +193,32 @@ pub async fn log_record_id(
     .await?;
 
     Ok(row.id)
+}
+
+pub async fn current_week_progress_by_id(
+    pool: &Pool<Sqlite>,
+    commitment_id: i64,
+) -> Result<Option<f64>, sqlx::Error> {
+    let (start, end) = current_week_bounds();
+    let start_str = start.to_string();
+    let end_str = end.to_string();
+
+    let total: Option<f64> = sqlx::query_scalar!(
+        r#"
+        SELECT SUM(pl.hours) as "total: f64"
+        FROM progress_logs pl
+        JOIN commitments c ON pl.commitment_id = c.id
+        WHERE c.id = ?1
+            AND c.active = 1
+            AND pl.logged_at >= ?2
+            AND pl.logged_at < ?3
+        "#,
+        commitment_id,
+        start_str,
+        end_str
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(total)
 }
