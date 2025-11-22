@@ -1,18 +1,8 @@
 use std::path::PathBuf;
 
+use crate::model::Commitment;
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use sqlx::{Pool, Sqlite, sqlite::SqlitePoolOptions};
-
-// use dirs;
-
-#[derive(Debug)]
-pub struct Commitment {
-    // pub id: u32,
-    pub id: i64,
-    pub name: String,
-    pub weekly_target_hours: f64,
-    pub active: bool,
-}
 
 fn db_path() -> PathBuf {
     let mut path = PathBuf::from("./data");
