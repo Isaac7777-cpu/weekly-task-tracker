@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::model::Commitment;
+use crate::model::{Commitment, CommitmentWithProgress};
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use sqlx::{Pool, Sqlite, sqlite::SqlitePoolOptions};
 
@@ -96,9 +96,14 @@ pub async fn get_commitment(
     pool: &Pool<Sqlite>,
     id: i64,
 ) -> Result<Option<Commitment>, sqlx::Error> {
-    let row = sqlx::query!(
+    let row = sqlx::query_as!(
+        Commitment,
         r#"
-        SELECT id, name, weekly_target_hours, active
+        SELECT 
+            id as "id!: i64", 
+            name as "name!: String", 
+            weekly_target_hours as "weekly_target_hours!: f64", 
+            active as "active!: bool"
         FROM commitments
         WHERE id == ?1
         "#,
@@ -107,38 +112,7 @@ pub async fn get_commitment(
     .fetch_optional(pool)
     .await?;
 
-    match row {
-        Some(r) => Ok(Some(Commitment {
-            id: r.id,
-            name: r.name,
-            weekly_target_hours: r.weekly_target_hours,
-            active: r.active != 0,
-        })),
-        None => Ok(None),
-    }
-}
-
-pub async fn list_commitments(pool: &Pool<Sqlite>) -> Vec<Commitment> {
-    let rows = sqlx::query!(
-        r#"
-        SELECT id, name, weekly_target_hours, active
-        FROM commitments
-        WHERE active = 1
-        ORDER BY id;
-        "#
-    )
-    .fetch_all(pool)
-    .await
-    .expect("Query failed");
-
-    rows.into_iter()
-        .map(|r| Commitment {
-            id: r.id,
-            name: r.name,
-            weekly_target_hours: r.weekly_target_hours,
-            active: r.active != 0,
-        })
-        .collect()
+    Ok(row)
 }
 
 pub async fn log_record(pool: &Pool<Sqlite>, name: &str, hours: f32) -> Result<i64, sqlx::Error> {
@@ -211,4 +185,36 @@ pub async fn current_week_progress_by_id(
     .await?;
 
     Ok(total)
+}
+
+pub async fn list_commitments_with_week_progress(
+    pool: &Pool<Sqlite>,
+) -> Result<Vec<CommitmentWithProgress>, sqlx::Error> {
+    let (start, end) = current_week_bounds();
+    let start_str = start.to_string();
+    let end_str = end.to_string();
+
+    let rows = sqlx::query_as!(
+        CommitmentWithProgress,
+        r#"
+        SELECT
+            c.id as "id!: i64",
+            c.name as "name!: String",
+            c.weekly_target_hours as "weekly_target_hours!: f64",
+            SUM(pl.hours) as "week_total: f64"
+        FROM commitments c
+        LEFT JOIN progress_logs pl
+            ON pl.commitment_id = c.id
+           AND pl.logged_at >= ?1
+           AND pl.logged_at < ?2
+        WHERE c.active = 1
+        GROUP BY c.id, c.name, c.weekly_target_hours
+        "#,
+        start_str,
+        end_str
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
 }

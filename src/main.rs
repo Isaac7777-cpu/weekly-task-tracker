@@ -5,13 +5,13 @@ mod util;
 
 use clap::Parser;
 use cli::Cli;
-use db::open_db;
 
 use crate::{
     cli::Commands,
     db::{
         add_commitment, archive_commiment, current_week_progress_by_id, get_commitment,
-        list_commitments, log_record, log_record_id, reactivate_commiment,
+        list_commitments_with_week_progress, log_record, log_record_id, open_db,
+        reactivate_commiment,
     },
     util::{color_for_pct, render_progress_bar},
 };
@@ -51,19 +51,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         Commands::List => {
-            let mut commitments = list_commitments(&pool).await;
+            let mut commitments = list_commitments_with_week_progress(&pool).await?;
             if commitments.is_empty() {
                 println!("No active commiments.");
             } else {
                 commitments.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-
                 println!("Active commiments:\n");
                 for commitment in commitments {
-                    let week_total = current_week_progress_by_id(&pool, commitment.id).await?;
-
-                    let (current, status_note) = match week_total {
-                        Some(wk) => (wk, String::new()),
-                        None => (0.0, " (hvn't started...)".to_string()),
+                    let current = commitment.week_total.unwrap_or(0.0);
+                    let status_note = if commitment.week_total.is_none() {
+                        " (Haven't started this week...)"
+                    } else {
+                        ""
                     };
 
                     let pct = if commitment.weekly_target_hours > 0.0 {
@@ -130,6 +129,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(wk) = week_total
                 && let Some(ct) = commitment
             {
+                assert!(ct.id == id);
+
                 if !ct.active {
                     eprintln!("The activity is currently not active.");
                 }
