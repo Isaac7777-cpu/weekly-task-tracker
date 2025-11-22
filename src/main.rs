@@ -1,6 +1,7 @@
 mod cli;
 mod db;
 mod model;
+mod util;
 
 use clap::Parser;
 use cli::Cli;
@@ -12,6 +13,7 @@ use crate::{
         add_commitment, archive_commiment, current_week_progress_by_id, get_commitment,
         list_commitments, log_record, log_record_id, reactivate_commiment,
     },
+    util::{color_for_pct, render_progress_bar},
 };
 
 #[tokio::main]
@@ -49,18 +51,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         Commands::List => {
-            let commitments = list_commitments(&pool).await;
+            let mut commitments = list_commitments(&pool).await;
             if commitments.is_empty() {
                 println!("No active commiments.");
             } else {
+                commitments.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
                 println!("Active commiments:\n");
                 for commitment in commitments {
+                    let week_total = current_week_progress_by_id(&pool, commitment.id).await?;
+
+                    let (current, status_note) = match week_total {
+                        Some(wk) => (wk, String::new()),
+                        None => (0.0, " (hvn't started...)".to_string()),
+                    };
+
+                    let pct = if commitment.weekly_target_hours > 0.0 {
+                        (current / commitment.weekly_target_hours * 100.0).clamp(0.0, 999.9)
+                    } else {
+                        0.0
+                    };
+
+                    let message = format!(
+                        "{cur:.1}/{target:.1} h ({pct:.1}%){note}",
+                        cur = current,
+                        target = commitment.weekly_target_hours,
+                        pct = pct,
+                        note = status_note
+                    );
+
+                    let bar = render_progress_bar(
+                        current,
+                        commitment.weekly_target_hours,
+                        message.len() + 5, // +2 for the "  " before the message
+                    );
+
+                    let color = color_for_pct(pct);
+                    const RESET: &str = "\x1b[0m";
+
+                    let colored_message = format!(
+                        "{cur:.1}/{target:.1} h {color}({pct:.1}%){RESET}\x1b[31m{note}\x1b[0m",
+                        cur = current,
+                        target = commitment.weekly_target_hours,
+                        pct = pct,
+                        note = status_note
+                    );
+
                     println!(
-                        "[#{id}] {name}\n Target: {hours:.1} hours/week\n",
+                        "[#{id}] {name}\n {bar}  {message}",
                         id = commitment.id,
                         name = commitment.name,
-                        hours = commitment.weekly_target_hours
-                    )
+                        bar = bar,
+                        message = colored_message
+                    );
                 }
             }
         }

@@ -23,5 +23,6 @@ pub enum Commands {
     Log { name: String, hours: f32 },
     LogID { id: i64, hours: f32 },
     TrackID { id: i64 },
+    TrackAll,
     History { id: i64 },
 }

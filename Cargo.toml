@@ -13,4 +13,4 @@ sqlx = { version = "0.7", features = [
   "macros",
 ] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-dirs = "5"
+terminal_size = "0.4"
