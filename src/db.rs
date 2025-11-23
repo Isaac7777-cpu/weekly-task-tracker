@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::model::{Commitment, CommitmentWithProgress};
+use crate::model::{Commitment, CommitmentWithProgress, WeeklyStat};
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use sqlx::{Pool, Sqlite, sqlite::SqlitePoolOptions};
 
@@ -217,4 +217,34 @@ pub async fn list_commitments_with_week_progress(
     .await?;
 
     Ok(rows)
+}
+
+pub async fn weekly_stats_for_commitment(
+    pool: &Pool<Sqlite>,
+    commitment_id: i64,
+) -> Result<Vec<WeeklyStat>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"
+        SELECT
+            date(pl.logged_at, 'weekday 1', '-7 days') as "week_start!: NaiveDate",
+            SUM(pl.hours) as "total_hours!: f64"
+        FROM progress_logs pl
+        WHERE pl.commitment_id = ?1
+        GROUP BY 1
+        ORDER BY 1
+        "#,
+        commitment_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let stats = rows
+        .into_iter()
+        .map(|r| WeeklyStat {
+            week_start: r.week_start,
+            total_hours: r.total_hours,
+        })
+        .collect();
+
+    Ok(stats)
 }

@@ -11,7 +11,7 @@ use crate::{
     db::{
         add_commitment, archive_commiment, current_week_progress_by_id, get_commitment,
         list_commitments_with_week_progress, log_record, log_record_id, open_db,
-        reactivate_commiment,
+        reactivate_commiment, weekly_stats_for_commitment,
     },
     util::{color_for_pct, render_progress_bar},
 };
@@ -144,6 +144,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else if week_total.is_none() {
                 let ct = commitment.unwrap();
                 eprintln!("You have not started on task '{}' this week.", ct.name);
+            }
+        }
+
+        Commands::History { id } => {
+            let commitment = get_commitment(&pool, id).await?;
+
+            match commitment {
+                Some(c) => {
+                    println!("{:?}", c);
+                    let weekly_stats = weekly_stats_for_commitment(&pool, id).await?;
+
+                    let total_hours_done =
+                        weekly_stats.iter().fold(0.0, |acc, w| acc + w.total_hours);
+                    let total_hours_target = weekly_stats.len() as f64 * c.weekly_target_hours;
+
+                    println!("done: {total_hours_done}\t\ttarget: {total_hours_target}");
+
+                    println!(
+                        "'{name}' is {status} by {amount}",
+                        name = c.name,
+                        status = if total_hours_done < total_hours_target {
+                            "due"
+                        } else {
+                            "overcomplete"
+                        },
+                        amount = (total_hours_done - total_hours_target).abs()
+                    );
+                }
+                None => {
+                    eprintln!("Cannot find commitment #{id}");
+                }
             }
         }
 
