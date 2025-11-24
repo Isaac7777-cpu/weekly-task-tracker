@@ -38,7 +38,6 @@ migrations/
 - [x] Archive commitments  
 - [x] Reactivate archived commitments  
 - [x] View current week progress (per commitment + total)  
-- [ ] Improve CLI output formatting  
 - [ ] Add database indexes for faster queries  
 - [ ] Add TUI mode using `ratatui`  
 - [ ] Export data to CSV  
