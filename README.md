@@ -38,9 +38,11 @@ migrations/
 - [x] Archive commitments  
 - [x] Reactivate archived commitments  
 - [x] View current week progress (per commitment + total)  
-- [ ] Add database indexes for faster queries  
-- [ ] Add TUI mode using `ratatui`  
+- [ ] Add Testing for the Functionalities
+- [ ] Add TUI mode using `ratatui`
+- [ ] Integrate with `neovim` / `vim`
 - [ ] Export data to CSV  
 - [ ] Graph weekly progress (e.g., via `plotters`)  
-- [ ] Sync across devices  
+- [ ] Sync across devices
+
 
