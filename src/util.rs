@@ -27,7 +27,6 @@ pub fn render_progress_bar(current: f64, target: f64, message_len: usize) -> Str
     format!("[{}{}]", "#".repeat(filled), "-".repeat(empty))
 }
 
-
 const RED: &str = "\x1b[31m";
 const YELLOW: &str = "\x1b[33m";
 const GREEN: &str = "\x1b[32m";

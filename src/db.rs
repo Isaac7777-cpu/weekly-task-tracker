@@ -241,7 +241,7 @@ pub async fn weekly_stats_for_commitment(
     let stats = rows
         .into_iter()
         .map(|r| WeeklyStat {
-            week_start: r.week_start,
+            _week_start: r.week_start,
             total_hours: r.total_hours,
         })
         .collect();
