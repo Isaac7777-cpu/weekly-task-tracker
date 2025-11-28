@@ -1,9 +1,10 @@
+mod app;
 mod cli;
 mod db;
 mod model;
 mod tui;
+mod ui;
 mod util;
-mod app;
 
 use clap::Parser;
 use cli::Cli;
@@ -71,8 +72,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
                         println!("Active commiments:\n");
                         for commitment in commitments {
-                            let current = commitment.week_total.unwrap_or(0.0);
-                            let status_note = if commitment.week_total.is_none() {
+                            let current = commitment.current_week_total.unwrap_or(0.0);
+                            let status_note = if commitment.current_week_total.is_none() {
                                 " (Haven't started this week...)"
                             } else {
                                 ""

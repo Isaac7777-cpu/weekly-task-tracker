@@ -4,16 +4,16 @@ use std::time::Instant;
 
 use crate::{
     db::{list_commitments_with_week_progress, weekly_stats_for_commitment},
-    model::{Commitment, CommitmentWithProgress, WeeklyStat},
+    model::{CommitmentWithProgress, WeeklyStat},
 };
+
+pub type CommitmentDisplayRecord = (CommitmentWithProgress, Vec<WeeklyStat>);
 
 #[derive(Debug, Clone)]
 pub enum InputMode {
     Normal,
     LogHours,
 }
-
-type CommitmentDisplayRecord = (CommitmentWithProgress, Vec<WeeklyStat>);
 
 pub struct App {
     pub items: Vec<CommitmentDisplayRecord>,

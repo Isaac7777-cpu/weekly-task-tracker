@@ -13,7 +13,8 @@ pub struct CommitmentWithProgress {
     pub id: i64,
     pub name: String,
     pub weekly_target_hours: f64,
-    pub week_total: Option<f64>,
+    pub current_week_total: Option<f64>,
+    pub active: bool,
 }
 
 #[derive(Debug, Clone)]

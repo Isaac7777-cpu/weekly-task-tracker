@@ -201,7 +201,8 @@ pub async fn list_commitments_with_week_progress(
             c.id as "id!: i64",
             c.name as "name!: String",
             c.weekly_target_hours as "weekly_target_hours!: f64",
-            SUM(pl.hours) as "week_total: f64"
+            c.active as "active!: bool",
+            SUM(pl.hours) as "current_week_total: f64"
         FROM commitments c
         LEFT JOIN progress_logs pl
             ON pl.commitment_id = c.id
