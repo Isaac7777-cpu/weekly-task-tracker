@@ -7,11 +7,11 @@ The project uses **SQLite** and **SQLx** for async database access, along with *
 
 ## ✨ Features
 
-- **Add commitments** with weekly target hours  
-- **Log progress** (e.g., daily or weekly hours done)  
-- **List all active commitments**  
-- **Archive / Reactivate** commitments without deleting history  
-- **View current week's progress** (per commitment and total)  
+- **Add commitments** with weekly target hours
+- **Log progress** (e.g., daily or weekly hours done)
+- **List all active commitments**
+- **Archive / Reactivate** commitments without deleting history
+- **View current week's progress** (per commitment and total)
 - **SQLite-backed**, async, and easy to migrate
 
 ---
@@ -20,10 +20,19 @@ The project uses **SQLite** and **SQLx** for async database access, along with *
 
 ```
 src/
+│
+├ # CLI parts with application backends (database parts)
 ├── cli.rs # Command-line argument definitions (Clap)
 ├── db.rs # Database setup + SQLx queries
 ├── main.rs # Entry point + routing commands
-└── models.rs # (If used) Structs representing DB rows
+├── models.rs # Structs representing DB rows
+├── cli.rs # Command-line argument definitions (Clap)
+│
+├ # TUI part, vaguely follow MVC architecture but also uses the above database as the 'backend'
+├── app.rs # TUI App state (Model)
+├── ui.rs # TUI UI Functions (View)
+└── tui.rs # TUI main loop + Event Handling (Controller)
+
 migrations/
 └── <timestamp>.sql # SQLx migration
 ```
@@ -32,17 +41,41 @@ migrations/
 
 ## ✨ Features / TODO
 
-- [x] Add commitments with weekly target hours  
-- [x] Log progress (daily/weekly hours)  
-- [x] List all active commitments  
-- [x] Archive commitments  
-- [x] Reactivate archived commitments  
-- [x] View current week progress (per commitment + total)  
+- [x] Add commitments with weekly target hours
+- [x] Log progress (daily/weekly hours)
+- [x] List all active commitments
+- [x] Archive commitments
+- [x] Reactivate archived commitments
+- [x] View current week progress (per commitment + total)
 - [ ] Add Testing for the Functionalities
 - [ ] Add TUI mode using `ratatui`
 - [ ] Integrate with `neovim` / `vim`
-- [ ] Export data to CSV  
-- [ ] Graph weekly progress (e.g., via `plotters`)  
+- [ ] Export data to CSV
+- [ ] Graph weekly progress (e.g., via `plotters`)
 - [ ] Sync across devices
 
+---
 
+## Contribution Guide
+
+Thanks for your interest in contributing! All contributions are welcome — whether it’s fixing a bug, improving documentation, or adding new features.
+
+1. Make sure you have **Rust (stable)** installed.
+2. Clone the repository:
+3. You can directly build the project and run it with
+   ```sh
+   cargo run
+   ```
+4. Use SQLx CLI for migrations:
+   ```sh
+   cargo install sqlx-cli
+   sqlx run migrations
+   ```
+
+This Project uses Rust's standard formatting (`rustfmt`), please use this formatting for the project.
+
+---
+
+## Tech Stack
+
+![Tech Stack](https://github-readme-tech-stack.vercel.app/api/cards?title=Weekly+Commitment+Tracker+Tech+Stack&align=center&titleAlign=center&fontSize=20&lineHeight=10&lineCount=2&theme=ayu&width=520&line1=rust,rust,DEA584;tokio,tokio,007ACC;clap,clap,FF7F2A;sqlx,sqlx,3A3A3A;&line2=sqlite,sqlite,003B57;ratatui,ratatui,FFC107;crossterm,crossterm,4A90E2;)
