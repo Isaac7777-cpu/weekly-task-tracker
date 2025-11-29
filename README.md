@@ -48,10 +48,10 @@ migrations/
 - [x] Reactivate archived commitments
 - [x] View current week progress (per commitment + total)
 - [ ] Add Testing for the Functionalities
-- [ ] Add TUI mode using `ratatui`
+- [x] Add TUI mode using `ratatui` (Mostly Done)
 - [ ] Integrate with `neovim` / `vim`
 - [ ] Export data to CSV
-- [ ] Graph weekly progress (e.g., via `plotters`)
+- [ ] Graph weekly progress (e.g., via `plotters`) (Half done -- Implemented using ratatui plots)
 - [ ] Sync across devices
 
 ---
@@ -71,6 +71,7 @@ Thanks for your interest in contributing! All contributions are welcome — whet
    cargo install sqlx-cli
    sqlx run migrations
    ```
+   Note that currently the project relies on a relative path to find the database (terrible idea, happy to take PR), so you have to run `cargo run` in the top level directory and you should / can use `sqlx create database` to create the database.
 
 This Project uses Rust's standard formatting (`rustfmt`), please use this formatting for the project.
 
