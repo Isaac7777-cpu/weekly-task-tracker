@@ -1,14 +1,36 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style, palette::tailwind},
     text::Span,
-    widgets::{Block, Borders, Gauge, List, ListItem, Paragraph, Wrap},
+    widgets::{
+        Block, BorderType, Borders, Gauge, LineGauge, List, ListItem, Padding, Paragraph, Wrap,
+    },
 };
 
 use crate::app::{App, CommitmentDisplayRecord};
 
-pub fn draw(f: &mut Frame, app: &App) {
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
+}
+
+pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -56,31 +78,42 @@ fn draw_progress_pane(f: &mut Frame, app: &App, area: Rect) {
             (c.0.current_week_total.unwrap_or(0.0) / c.0.weekly_target_hours).min(1.5) // To have at least something       
         };
 
-        let label = format!(
-            "{} ({:.1}/{:.1}h)",
-            c.0.name,
-            c.0.current_week_total.unwrap_or(0.0),
-            c.0.weekly_target_hours
-        );
-
-        let mut gauge_style = Style::default().fg(Color::Green);
+        let mut gauge_style = Style::default().fg(tailwind::GREEN.c700);
         if ratio >= 1.0 {
             gauge_style = Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD);
         }
 
+        let label = format!(
+            "{} ({:.1}/{:.1}h)",
+            c.0.name,
+            c.0.current_week_total.unwrap_or(0.0),
+            c.0.weekly_target_hours
+        );
         let gauge = Gauge::default()
-            .block(Block::default().borders(Borders::NONE))
+            .block(Block::default().borders(Borders::TOP | Borders::BOTTOM))
             .gauge_style(gauge_style)
-            .ratio((ratio / 1.5).min(1.0))
-            .label(Span::raw(label));
+            .ratio((ratio / 1.5).min(1.0).max(0.005))
+            .label(Span::raw(format!("{} %", (ratio * 100.0).round())))
+            .use_unicode(true);
 
-        f.render_widget(gauge, row_area.clone());
+        f.render_widget(gauge, *row_area);
+
+        let lable_width = label.chars().count() as u16;
+        let label_area = Rect {
+            x: row_area.x + 2,
+            y: row_area.y,
+            width: lable_width.min((row_area.width as f32 * 0.3) as u16),
+            height: 1,
+        };
+        let label_widget = Paragraph::new(label).style(Style::default().bg(Color::Reset));
+
+        f.render_widget(label_widget, label_area);
     }
 }
 
-fn draw_commitments_list_pane(f: &mut Frame, app: &App, area: Rect) {
+fn draw_commitments_list_pane(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .title("Commitments (j/k, gg/G, a, l, r)")
         .borders(Borders::ALL);
@@ -114,7 +147,7 @@ fn draw_commitments_list_pane(f: &mut Frame, app: &App, area: Rect) {
         )
         .highlight_symbol(">> ");
 
-    f.render_stateful_widget(list, inner, &mut app.list_state.clone());
+    f.render_stateful_widget(list, inner, &mut app.list_state);
 }
 
 fn _draw_detail_pane(f: &mut Frame, app: &App, area: Rect) {

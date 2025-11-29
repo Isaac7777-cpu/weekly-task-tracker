@@ -25,7 +25,7 @@ pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
     let mut last_tick = Instant::now();
 
     let res = loop {
-        terminal.draw(|f| crate::ui::draw(f, &app))?;
+        terminal.draw(|f| crate::ui::draw(f, &mut app))?;
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
