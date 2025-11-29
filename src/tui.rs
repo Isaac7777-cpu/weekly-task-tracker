@@ -20,7 +20,7 @@ pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(&pool).await?;
+    let mut app = App::new(pool).await?;
     let tick_rate = Duration::from_millis(20);
     let mut last_tick = Instant::now();
 
@@ -33,7 +33,7 @@ pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
 
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                if handle_key_event(key, &mut app, &pool).await? {
+                if handle_key_event(key, &mut app).await? {
                     break Ok(());
                 }
             }
@@ -51,22 +51,15 @@ pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
     res
 }
 
-async fn handle_key_event(
-    key: event::KeyEvent,
-    app: &mut App,
-    pool: &sqlx::Pool<sqlx::Sqlite>,
-) -> anyhow::Result<bool> {
+async fn handle_key_event(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
     match app.input_mode {
-        InputMode::Normal => handle_normal_mode(key, app, pool).await,
+        InputMode::Normal => handle_normal_mode(key, app).await,
         _ => Ok(false),
     }
 }
 
-async fn handle_normal_mode(
-    key: event::KeyEvent,
-    app: &mut App,
-    pool: &sqlx::Pool<sqlx::Sqlite>,
-) -> anyhow::Result<bool> {
+async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
+    // TODO: Make the operations on the UI be non-blocking
     match key.code {
         KeyCode::Char('q') => {
             return Ok(true);
@@ -84,13 +77,10 @@ async fn handle_normal_mode(
             app.jump_last();
         }
         KeyCode::Char('r') => {
-            if let Some(sel) = app.selected_item() {
-                if !sel.0.active {
-                    crate::db::reactivate_commiment(pool, sel.0.id).await?;
-                    app.set_message(format!("Reactivated #{}", sel.0.id));
-                    app.refresh_from_db(pool).await?;
-                }
-            }
+            app.reactivate_selected().await?;
+        }
+        KeyCode::Char('a') => {
+            app.archive_selected().await?;
         }
         KeyCode::Char('l') => {
             if let Some(sel) = app.selected_item() {
@@ -101,7 +91,7 @@ async fn handle_normal_mode(
                 }
             }
         }
-        KeyCode::Char('a') => {
+        KeyCode::Char('o') => {
             app.set_message("New commitment name: (Enter to confirm, ESC to cancel)");
         }
         _ => {}

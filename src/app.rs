@@ -3,7 +3,7 @@ use sqlx::SqlitePool;
 use std::time::Instant;
 
 use crate::{
-    db::{list_commitments_with_week_progress, weekly_stats_for_commitment},
+    db::{list_all_commitments_with_week_progress, weekly_stats_for_commitment},
     model::{CommitmentWithProgress, WeeklyStat},
 };
 
@@ -16,40 +16,45 @@ pub enum InputMode {
 }
 
 pub struct App {
-    pub items: Vec<CommitmentDisplayRecord>,
+    pool: SqlitePool,
+    items: Vec<CommitmentDisplayRecord>,
+    pub input_buffer: String,
     pub list_state: ListState,
     pub input_mode: InputMode,
-    pub input_buffer: String,
     pub message: String,
     pub last_refresh: Instant,
 }
 
 impl App {
-    pub async fn new(pool: &SqlitePool) -> anyhow::Result<Self> {
+    pub async fn new(pool: SqlitePool) -> anyhow::Result<Self> {
         let mut app = Self {
+            pool: pool,
             items: Vec::new(),
             list_state: ListState::default(),
             input_mode: InputMode::Normal,
             input_buffer: String::new(),
-            message: String::from("q: quit | j/k: move | a: add | l: log | r: reactivate"),
+            message: String::from(
+                "q: quit | j/k: move | o: add | l: log | r: reactivate | a: archive",
+            ),
             last_refresh: Instant::now(),
         };
-        app.refresh_from_db(pool).await?;
+        app.refresh_from_db().await?;
         if !app.items.is_empty() {
             app.list_state.select(Some(0));
         }
         Ok(app)
     }
 
-    pub async fn refresh_from_db(&mut self, pool: &SqlitePool) -> anyhow::Result<()> {
-        let commitments_with_progs = list_commitments_with_week_progress(pool).await?;
+    pub async fn refresh_from_db(&mut self) -> anyhow::Result<()> {
+        let commitments_with_progs = list_all_commitments_with_week_progress(&self.pool).await?;
 
         self.items.clear();
         for c_pg in commitments_with_progs {
-            let stats = weekly_stats_for_commitment(pool, c_pg.id).await?;
+            let stats = weekly_stats_for_commitment(&self.pool, c_pg.id).await?;
 
             self.items.push((c_pg, stats));
         }
+        self.items.sort_by_key(|c| (!c.0.active, c.0.id));
 
         self.last_refresh = Instant::now();
 
@@ -60,8 +65,16 @@ impl App {
         self.list_state.selected()
     }
 
+    pub fn set_message<S: Into<String>>(&mut self, msg: S) {
+        self.message = msg.into();
+    }
+
     pub fn selected_item(&self) -> Option<&CommitmentDisplayRecord> {
         self.selected_index().and_then(|idx| self.items.get(idx))
+    }
+
+    pub fn get_items(&self) -> &[CommitmentDisplayRecord] {
+        &self.items
     }
 
     pub fn next(&mut self) {
@@ -97,7 +110,25 @@ impl App {
         }
     }
 
-    pub fn set_message<S: Into<String>>(&mut self, msg: S) {
-        self.message = msg.into();
+    pub async fn reactivate_selected(&mut self) -> anyhow::Result<()> {
+        if let Some(sel) = self.selected_item() {
+            if !sel.0.active {
+                crate::db::reactivate_commiment(&self.pool, sel.0.id).await?;
+                self.set_message(format!("Reactivated #{}", sel.0.id));
+                self.refresh_from_db().await?;
+            };
+        };
+        Ok(())
+    }
+
+    pub async fn archive_selected(&mut self) -> anyhow::Result<()> {
+        if let Some(sel) = self.selected_item() {
+            if sel.0.active {
+                crate::db::archive_commiment(&self.pool, sel.0.id).await?;
+                self.set_message(format!("Archived #{}", sel.0.id));
+                self.refresh_from_db().await?;
+            };
+        };
+        Ok(())
     }
 }

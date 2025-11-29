@@ -1,3 +1,4 @@
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use terminal_size::{Width, terminal_size};
 
 fn compute_bar_width(message_len: usize) -> usize {
@@ -31,6 +32,7 @@ const RED: &str = "\x1b[31m";
 const YELLOW: &str = "\x1b[33m";
 const GREEN: &str = "\x1b[32m";
 
+#[inline]
 pub fn color_for_pct(pct: f64) -> &'static str {
     if pct < 25.0 {
         RED
@@ -39,4 +41,10 @@ pub fn color_for_pct(pct: f64) -> &'static str {
     } else {
         GREEN
     }
+}
+
+#[inline]
+pub fn get_monday_this_week() -> NaiveDate {
+    let today = Local::now().date_naive();
+    today - Duration::days(today.weekday().num_days_from_monday() as i64)
 }

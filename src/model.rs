@@ -14,11 +14,12 @@ pub struct CommitmentWithProgress {
     pub name: String,
     pub weekly_target_hours: f64,
     pub current_week_total: Option<f64>,
+    pub start_monday: NaiveDate,
     pub active: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct WeeklyStat {
-    pub _week_start: NaiveDate,
+    pub week_start: NaiveDate,
     pub total_hours: f64,
 }

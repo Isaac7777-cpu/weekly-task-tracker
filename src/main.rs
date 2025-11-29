@@ -13,7 +13,7 @@ use crate::{
     cli::Commands,
     db::{
         add_commitment, archive_commiment, current_week_progress_by_id, get_commitment,
-        list_commitments_with_week_progress, log_record, log_record_id, open_db,
+        list_active_commitments_with_week_progress, log_record, log_record_id, open_db,
         reactivate_commiment, weekly_stats_for_commitment,
     },
     util::{color_for_pct, render_progress_bar},
@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 Commands::List => {
-                    let mut commitments = list_commitments_with_week_progress(&pool).await?;
+                    let mut commitments = list_active_commitments_with_week_progress(&pool).await?;
                     if commitments.is_empty() {
                         println!("No active commiments.");
                     } else {

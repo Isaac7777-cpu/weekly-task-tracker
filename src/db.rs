@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::model::{Commitment, CommitmentWithProgress, WeeklyStat};
 use chrono::{Datelike, Duration, Local, NaiveDate};
-use sqlx::{Pool, Sqlite, sqlite::SqlitePoolOptions};
+use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 
 fn db_path() -> PathBuf {
     let mut path = PathBuf::from("./data");
@@ -21,7 +21,7 @@ fn current_week_bounds() -> (NaiveDate, NaiveDate) {
     (week_start, next_week_start)
 }
 
-pub async fn open_db() -> Pool<Sqlite> {
+pub async fn open_db() -> SqlitePool {
     let path = db_path().to_string_lossy().to_string();
     let url = format!("sqlite://{}", path);
 
@@ -33,7 +33,7 @@ pub async fn open_db() -> Pool<Sqlite> {
 }
 
 pub async fn add_commitment(
-    pool: &Pool<Sqlite>,
+    pool: &SqlitePool,
     name: &str,
     weekly_hours: f64,
 ) -> Result<i64, sqlx::Error> {
@@ -62,7 +62,7 @@ pub async fn add_commitment(
     Ok(row.id)
 }
 
-pub async fn archive_commiment(pool: &Pool<Sqlite>, id: i64) -> Result<u64, sqlx::Error> {
+pub async fn archive_commiment(pool: &SqlitePool, id: i64) -> Result<u64, sqlx::Error> {
     let result = sqlx::query!(
         r#"
         UPDATE commitments
@@ -77,7 +77,7 @@ pub async fn archive_commiment(pool: &Pool<Sqlite>, id: i64) -> Result<u64, sqlx
     Ok(result.rows_affected())
 }
 
-pub async fn reactivate_commiment(pool: &Pool<Sqlite>, id: i64) -> Result<u64, sqlx::Error> {
+pub async fn reactivate_commiment(pool: &SqlitePool, id: i64) -> Result<u64, sqlx::Error> {
     let result = sqlx::query!(
         r#"
         UPDATE commitments
@@ -92,10 +92,7 @@ pub async fn reactivate_commiment(pool: &Pool<Sqlite>, id: i64) -> Result<u64, s
     Ok(result.rows_affected())
 }
 
-pub async fn get_commitment(
-    pool: &Pool<Sqlite>,
-    id: i64,
-) -> Result<Option<Commitment>, sqlx::Error> {
+pub async fn get_commitment(pool: &SqlitePool, id: i64) -> Result<Option<Commitment>, sqlx::Error> {
     let row = sqlx::query_as!(
         Commitment,
         r#"
@@ -115,7 +112,7 @@ pub async fn get_commitment(
     Ok(row)
 }
 
-pub async fn log_record(pool: &Pool<Sqlite>, name: &str, hours: f32) -> Result<i64, sqlx::Error> {
+pub async fn log_record(pool: &SqlitePool, name: &str, hours: f32) -> Result<i64, sqlx::Error> {
     let log_time = Local::now().date_naive().to_string();
 
     let row = sqlx::query!(
@@ -137,7 +134,7 @@ pub async fn log_record(pool: &Pool<Sqlite>, name: &str, hours: f32) -> Result<i
 }
 
 pub async fn log_record_id(
-    pool: &Pool<Sqlite>,
+    pool: &SqlitePool,
     commitment_id: i64,
     hours: f32,
 ) -> Result<i64, sqlx::Error> {
@@ -160,7 +157,7 @@ pub async fn log_record_id(
 }
 
 pub async fn current_week_progress_by_id(
-    pool: &Pool<Sqlite>,
+    pool: &SqlitePool,
     commitment_id: i64,
 ) -> Result<Option<f64>, sqlx::Error> {
     let (start, end) = current_week_bounds();
@@ -187,8 +184,8 @@ pub async fn current_week_progress_by_id(
     Ok(total)
 }
 
-pub async fn list_commitments_with_week_progress(
-    pool: &Pool<Sqlite>,
+pub async fn list_active_commitments_with_week_progress(
+    pool: &SqlitePool,
 ) -> Result<Vec<CommitmentWithProgress>, sqlx::Error> {
     let (start, end) = current_week_bounds();
     let start_str = start.to_string();
@@ -202,6 +199,7 @@ pub async fn list_commitments_with_week_progress(
             c.name as "name!: String",
             c.weekly_target_hours as "weekly_target_hours!: f64",
             c.active as "active!: bool",
+            c.start_week_monday as "start_monday!: NaiveDate",
             SUM(pl.hours) as "current_week_total: f64"
         FROM commitments c
         LEFT JOIN progress_logs pl
@@ -220,8 +218,41 @@ pub async fn list_commitments_with_week_progress(
     Ok(rows)
 }
 
+pub async fn list_all_commitments_with_week_progress(
+    pool: &SqlitePool,
+) -> Result<Vec<CommitmentWithProgress>, sqlx::Error> {
+    let (start, end) = current_week_bounds();
+    let start_str = start.to_string();
+    let end_str = end.to_string();
+
+    let rows = sqlx::query_as!(
+        CommitmentWithProgress,
+        r#"
+        SELECT
+            c.id as "id!: i64",
+            c.name as "name!: String",
+            c.weekly_target_hours as "weekly_target_hours!: f64",
+            c.active as "active!: bool",
+            c.start_week_monday as "start_monday!: NaiveDate",
+            SUM(pl.hours) as "current_week_total: f64"
+        FROM commitments c
+        LEFT JOIN progress_logs pl
+            ON pl.commitment_id = c.id
+           AND pl.logged_at >= ?1
+           AND pl.logged_at < ?2
+        GROUP BY c.id, c.name, c.weekly_target_hours
+        "#,
+        start_str,
+        end_str
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
+}
+
 pub async fn weekly_stats_for_commitment(
-    pool: &Pool<Sqlite>,
+    pool: &SqlitePool,
     commitment_id: i64,
 ) -> Result<Vec<WeeklyStat>, sqlx::Error> {
     let rows = sqlx::query!(
@@ -242,7 +273,7 @@ pub async fn weekly_stats_for_commitment(
     let stats = rows
         .into_iter()
         .map(|r| WeeklyStat {
-            _week_start: r.week_start,
+            week_start: r.week_start,
             total_hours: r.total_hours,
         })
         .collect();
