@@ -52,9 +52,11 @@ pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
 }
 
 async fn handle_key_event(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
+    // TODO: Make the TUI apps editable
     match app.input_mode {
         InputMode::Normal => handle_normal_mode(key, app).await,
-        _ => Ok(false),
+        InputMode::LogHours => handle_log_hour_mode(key, app).await,
+        // _ => Ok(false),
     }
 }
 
@@ -85,9 +87,9 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
         KeyCode::Char('l') => {
             if let Some(sel) = app.selected_item() {
                 if sel.0.active {
-                    app.set_message(
-                        "Enter hours to log, then press Enter (ESC to cancel) [NOT IMPLEMENTED]",
-                    );
+                    app.input_mode = InputMode::LogHours;
+                } else {
+                    app.set_message("You can only log hours for activated items");
                 }
             }
         }
@@ -98,4 +100,15 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
     };
 
     Ok(false)
+}
+
+async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
+    match key.code {
+        KeyCode::Esc | KeyCode::Char('q') => {
+            app.input_mode = InputMode::Normal;
+        }
+        _ => {}
+    }
+
+    return Ok(false);
 }

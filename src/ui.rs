@@ -3,14 +3,17 @@ use std::collections::HashMap;
 use chrono::{Duration, NaiveDate};
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize, palette::tailwind},
     text::{Line, Span},
-    widgets::{Bar, BarChart, BarGroup, Block, Borders, Gauge, List, ListItem, Paragraph, Wrap},
+    widgets::{
+        Bar, BarChart, BarGroup, Block, BorderType, Borders, Clear, Gauge, List, ListItem,
+        Paragraph, Wrap,
+    },
 };
 
 use crate::{
-    app::{App, CommitmentDisplayRecord},
+    app::{App, CommitmentDisplayRecord, InputMode},
     model::WeeklyStat,
     util::get_monday_this_week,
 };
@@ -64,6 +67,14 @@ fn compute_history_summary(
     }
 }
 
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
+}
+
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -82,6 +93,15 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_commitments_list_pane(f, app, panes[1]);
     draw_detail_pane(f, app, chunks[1]);
     draw_footer(f, app, chunks[2]);
+
+    // TODO: Draw editing related screen
+    match app.input_mode {
+        InputMode::LogHours => draw_log_overlay(f, app),
+        _ => {}
+    }
+}
+
+fn draw_log_overlay(f: &mut Frame, app: &mut App) {
 }
 
 fn draw_progress_pane(f: &mut Frame, app: &App, area: Rect) {
@@ -274,12 +294,10 @@ fn draw_history_summary(f: &mut Frame, app: &App, area: Rect) {
     let commitment: &CommitmentDisplayRecord = selected;
 
     // get the stats for this commitment (you may already have them cached in App)
-    let stats: &Vec<WeeklyStat> = &commitment.1;
-
     let summary = compute_history_summary(
         commitment.0.start_monday,
         commitment.0.weekly_target_hours,
-        stats,
+        &commitment.1,
     );
 
     let status_text = if summary.delta < -1e-6 {
