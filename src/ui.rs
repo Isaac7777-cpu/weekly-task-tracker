@@ -337,10 +337,33 @@ fn draw_history_summary(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(widget, area);
 }
 
+impl InputMode {
+    fn get_style(&self) -> Style {
+        match self {
+            InputMode::Normal => Style::default().bg(tailwind::PURPLE.c800),
+            InputMode::LogHours => Style::default().bg(tailwind::CYAN.c800),
+        }
+    }
+}
+
 fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
     // TODO: Implement the hint
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Max(12), Constraint::Fill(1)])
+        .split(area);
+
+    f.render_widget(
+        Span::styled(
+            format!(" {} ", app.input_mode.to_string()),
+            app.input_mode.get_style(),
+        ),
+        chunks[0],
+    );
+
     f.render_widget(
         Paragraph::new(app.message.clone()).wrap(Wrap { trim: true }),
-        area,
+        chunks[1],
     );
 }

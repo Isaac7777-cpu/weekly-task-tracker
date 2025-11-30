@@ -1,3 +1,4 @@
+use core::fmt;
 use ratatui::widgets::ListState;
 use sqlx::SqlitePool;
 use std::time::Instant;
@@ -13,6 +14,15 @@ pub type CommitmentDisplayRecord = (CommitmentWithProgress, Vec<WeeklyStat>);
 pub enum InputMode {
     Normal,
     LogHours,
+}
+
+impl fmt::Display for InputMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InputMode::Normal => write!(f, "NORMAL"),
+            InputMode::LogHours => write!(f, "LOG HOUR"),
+        }
+    }
 }
 
 pub struct App {
