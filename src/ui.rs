@@ -4,15 +4,65 @@ use chrono::{Duration, NaiveDate};
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style, palette::tailwind},
+    style::{Color, Modifier, Style, Stylize, palette::tailwind},
     text::{Line, Span},
     widgets::{Bar, BarChart, BarGroup, Block, Borders, Gauge, List, ListItem, Paragraph, Wrap},
 };
 
 use crate::{
     app::{App, CommitmentDisplayRecord},
+    model::WeeklyStat,
     util::get_monday_this_week,
 };
+
+struct HistorySummary {
+    pub start_monday: NaiveDate,
+    pub weeks_passed: i64,
+    pub total_required: f64,
+    pub total_done: f64,
+    pub delta: f64,
+}
+
+fn draw_vertical_separator(f: &mut Frame, area: Rect, spacer: Rect) {
+    let separator_area = Rect {
+        x: spacer.x,
+        y: area.y,
+        width: 1,
+        height: area.height,
+    };
+
+    f.render_widget(
+        Paragraph::new("|".repeat(area.height as usize))
+            .wrap(Wrap { trim: false })
+            .style(
+                Style::default()
+                    .fg(tailwind::GRAY.c600)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        separator_area,
+    );
+}
+
+fn compute_history_summary(
+    start_monday: NaiveDate,
+    weekly_target_hours: f64,
+    stats: &[WeeklyStat],
+) -> HistorySummary {
+    let this_monday = get_monday_this_week();
+    let weeks_passed = ((this_monday - start_monday).num_weeks() + 1).max(0);
+
+    let total_done: f64 = stats.iter().map(|s| s.total_hours).sum();
+    let total_required = weekly_target_hours * weeks_passed as f64;
+    let delta = total_done - total_required;
+
+    HistorySummary {
+        start_monday,
+        weeks_passed,
+        total_required,
+        total_done,
+        delta,
+    }
+}
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
@@ -146,6 +196,12 @@ fn draw_detail_pane(f: &mut Frame, app: &App, area: Rect) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
+    let (chunks, spacers) = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Fill(3), Constraint::Fill(2)])
+        .spacing(2)
+        .split_with_spacers(inner);
+
     let Some(selected) = app.selected_item() else {
         let p =
             Paragraph::new("No commitment selected").style(Style::default().fg(Color::DarkGray));
@@ -185,7 +241,6 @@ fn draw_detail_pane(f: &mut Frame, app: &App, area: Rect) {
                 .style(bar_style)
                 .label(Line::from(format!("W{}", i + 1)))
                 .text_value(format!("{}h", hours.round()))
-            // .value_style(bar_style.reversed())
         })
         .collect();
 
@@ -198,7 +253,88 @@ fn draw_detail_pane(f: &mut Frame, app: &App, area: Rect) {
         .bar_gap(1)
         .max(max);
 
-    f.render_widget(chart, inner);
+    f.render_widget(chart, chunks[0]);
+
+    // Draw the summary
+    draw_history_summary(f, app, chunks[1]);
+
+    // Draw the separator
+    draw_vertical_separator(f, inner, spacers[1]);
+}
+
+fn draw_history_summary(f: &mut Frame, app: &App, area: Rect) {
+    let Some(selected) = app.selected_item() else {
+        // nothing selected – draw placeholder
+        let placeholder = Paragraph::new("No commitment selected").wrap(Wrap { trim: true });
+        f.render_widget(placeholder, area);
+        return;
+    };
+
+    // however you store them:
+    let commitment: &CommitmentDisplayRecord = selected;
+
+    // get the stats for this commitment (you may already have them cached in App)
+    let stats: &Vec<WeeklyStat> = &commitment.1;
+
+    let summary = compute_history_summary(
+        commitment.0.start_monday,
+        commitment.0.weekly_target_hours,
+        stats,
+    );
+
+    let status_text = if summary.delta < -1e-6 {
+        format!("Due by {:.1} h", -summary.delta + 0.0)
+    } else if summary.delta > 1e-6 {
+        format!("Overdone by {:.1} h", summary.delta + 0.0)
+    } else {
+        "On track".to_string()
+    };
+
+    let lines = vec![
+        Line::from(vec![
+            Span::styled(
+                "Start Monday: ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(summary.start_monday.format("%Y-%m-%d").to_string()),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "Weeks passed: ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(summary.weeks_passed.to_string()),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Required: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(format!("{:.1} h", summary.total_required)),
+        ]),
+        Line::from(vec![
+            Span::styled("Done:     ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(format!("{:.1} h", summary.total_done + 0.0)),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled(
+                "Accumulated Status: ",
+                Style::default()
+                    .add_modifier(Modifier::BOLD)
+                    .fg(if summary.delta < 0.0 {
+                        Color::Red
+                    } else if summary.delta > 0.0 {
+                        Color::Green
+                    } else {
+                        Color::Gray
+                    }),
+            ),
+            Span::raw(status_text),
+        ]),
+    ];
+
+    let widget = Paragraph::new(lines).wrap(Wrap { trim: true });
+
+    f.render_widget(widget, area);
 }
 
 fn draw_footer(f: &mut Frame, app: &App, area: Rect) {

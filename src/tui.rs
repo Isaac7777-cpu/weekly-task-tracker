@@ -91,7 +91,7 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
                 }
             }
         }
-        KeyCode::Char('o') => {
+        KeyCode::Char('c') => {
             app.set_message("New commitment name: (Enter to confirm, ESC to cancel)");
         }
         _ => {}

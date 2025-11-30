@@ -34,7 +34,7 @@ impl App {
             input_mode: InputMode::Normal,
             input_buffer: String::new(),
             message: String::from(
-                "q: quit | j/k: move | o: add | l: log | r: reactivate | a: archive",
+                "q: quit | j/k: move | c: add commitment | l: log | r: reactivate | a: archive",
             ),
             last_refresh: Instant::now(),
         };
