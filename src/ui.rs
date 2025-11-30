@@ -102,6 +102,41 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 }
 
 fn draw_log_overlay(f: &mut Frame, app: &mut App) {
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .title_bottom("Log Hours");
+    let area = popup_area(f.area(), 40, 50);
+    let inner = block.inner(area);
+
+    f.render_widget(Clear, area);
+    f.render_widget(block, area);
+
+    let Some(item) = app.selected_item() else {
+        f.render_widget(Paragraph::new("No Selected Item..."), inner);
+        return;
+    };
+
+    let (chunks, spacer) = Layout::vertical([
+        Constraint::Min(1),
+        Constraint::Length(9),
+        Constraint::Percentage(40),
+    ])
+    .horizontal_margin(1)
+    .spacing(1)
+    .split_with_spacers(inner);
+
+    // Draw the title
+    f.render_widget(
+        Span::styled(
+            format!("Logging for \"{}\" (#{})", item.0.name, item.0.id),
+            Style::default()
+                .bold()
+                .underlined()
+                .bg(tailwind::STONE.c900)
+                .fg(tailwind::ROSE.c500),
+        ),
+        chunks[0],
+    );
 }
 
 fn draw_progress_pane(f: &mut Frame, app: &App, area: Rect) {
