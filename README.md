@@ -48,10 +48,10 @@ migrations/
 - [x] Reactivate archived commitments
 - [x] View current week progress (per commitment + total)
 - [ ] Add Testing for the Functionalities
-- [x] Add TUI mode using `ratatui` (Mostly Done)
+- [ ] Add TUI mode using `ratatui` (Mostly Done)
 - [ ] Integrate with `neovim` / `vim`
 - [ ] Export data to CSV
-- [ ] Graph weekly progress (e.g., via `plotters`) (Half done -- Implemented using ratatui plots)
+- [x] Graph weekly progress (e.g., via `ratatui`)
 - [ ] Sync across devices
 
 ---
