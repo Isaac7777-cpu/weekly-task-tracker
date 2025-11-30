@@ -137,6 +137,65 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
         ),
         chunks[0],
     );
+
+    // Display the details of the commitment
+    let summary = compute_history_summary(item.0.start_monday, item.0.weekly_target_hours, &item.1);
+    let status_text = if summary.delta < -1e-6 {
+        format!("Due by {:.1} h", -summary.delta + 0.0)
+    } else if summary.delta > 1e-6 {
+        format!("Overdone by {:.1} h", summary.delta + 0.0)
+    } else {
+        "On track".to_string()
+    };
+    let lines = vec![
+        Line::from(vec![
+            Span::styled(
+                "Start Monday: ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(summary.start_monday.format("%Y-%m-%d").to_string()),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "Weeks passed: ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(summary.weeks_passed.to_string()),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Required: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(format!("{:.1} h", summary.total_required)),
+        ]),
+        Line::from(vec![
+            Span::styled("Done:     ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(format!("{:.1} h", summary.total_done + 0.0)),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled(
+                "Accumulated Status: ",
+                Style::default()
+                    .add_modifier(Modifier::BOLD)
+                    .fg(if summary.delta < 0.0 {
+                        Color::Red
+                    } else if summary.delta > 0.0 {
+                        Color::Green
+                    } else {
+                        Color::Gray
+                    }),
+            ),
+            Span::raw(status_text),
+        ]),
+    ];
+    let widget = Paragraph::new(lines).wrap(Wrap { trim: false }).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title_top("Details for reminder..."),
+    );
+    f.render_widget(widget, chunks[1]);
+
+    // TODO: Input Bar for Setting Log Amount
 }
 
 fn draw_progress_pane(f: &mut Frame, app: &App, area: Rect) {
