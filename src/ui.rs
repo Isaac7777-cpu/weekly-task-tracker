@@ -26,7 +26,27 @@ struct HistorySummary {
     pub delta: f64,
 }
 
-fn draw_vertical_separator(f: &mut Frame, area: Rect, spacer: Rect) {
+fn draw_horizontal_separator(f: &mut Frame, area: Rect, spacer: Rect, sep_char: char) {
+    let separator_area = Rect {
+        x: area.x,
+        y: spacer.y,
+        width: area.width,
+        height: 1,
+    };
+
+    f.render_widget(
+        Paragraph::new(sep_char.to_string().repeat(area.width as usize))
+            .wrap(Wrap { trim: false })
+            .style(
+                Style::default()
+                    .fg(tailwind::GRAY.c600)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        separator_area,
+    );
+}
+
+fn draw_vertical_separator(f: &mut Frame, area: Rect, spacer: Rect, sep_char: char) {
     let separator_area = Rect {
         x: spacer.x,
         y: area.y,
@@ -35,7 +55,7 @@ fn draw_vertical_separator(f: &mut Frame, area: Rect, spacer: Rect) {
     };
 
     f.render_widget(
-        Paragraph::new("|".repeat(area.height as usize))
+        Paragraph::new(sep_char.to_string().repeat(area.height as usize))
             .wrap(Wrap { trim: false })
             .style(
                 Style::default()
@@ -67,79 +87,7 @@ fn compute_history_summary(
     }
 }
 
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
-}
-
-pub fn draw(f: &mut Frame, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(1),
-            Constraint::Percentage(15),
-            Constraint::Length(1),
-        ])
-        .split(f.area());
-    let panes = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-        .split(chunks[0]);
-
-    draw_progress_pane(f, app, panes[0]);
-    draw_commitments_list_pane(f, app, panes[1]);
-    draw_detail_pane(f, app, chunks[1]);
-    draw_footer(f, app, chunks[2]);
-
-    // TODO: Draw editing related screen
-    match app.input_mode {
-        InputMode::LogHours => draw_log_overlay(f, app),
-        _ => {}
-    }
-}
-
-fn draw_log_overlay(f: &mut Frame, app: &mut App) {
-    let block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .title_bottom("Log Hours");
-    let area = popup_area(f.area(), 40, 50);
-    let inner = block.inner(area);
-
-    f.render_widget(Clear, area);
-    f.render_widget(block, area);
-
-    let Some(item) = app.selected_item() else {
-        f.render_widget(Paragraph::new("No Selected Item..."), inner);
-        return;
-    };
-
-    let (chunks, spacer) = Layout::vertical([
-        Constraint::Min(1),
-        Constraint::Length(9),
-        Constraint::Percentage(40),
-    ])
-    .horizontal_margin(1)
-    .spacing(1)
-    .split_with_spacers(inner);
-
-    // Draw the title
-    f.render_widget(
-        Span::styled(
-            format!("Logging for \"{}\" (#{})", item.0.name, item.0.id),
-            Style::default()
-                .bold()
-                .underlined()
-                .bg(tailwind::STONE.c900)
-                .fg(tailwind::ROSE.c500),
-        ),
-        chunks[0],
-    );
-
-    // Display the details of the commitment
-    let summary = compute_history_summary(item.0.start_monday, item.0.weekly_target_hours, &item.1);
+fn render_commitment_history_summary_as_paragraph(summary: HistorySummary) -> Paragraph<'static> {
     let status_text = if summary.delta < -1e-6 {
         format!("Due by {:.1} h", -summary.delta + 0.0)
     } else if summary.delta > 1e-6 {
@@ -188,11 +136,90 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
             Span::raw(status_text),
         ]),
     ];
-    let widget = Paragraph::new(lines).wrap(Wrap { trim: false }).block(
+    Paragraph::new(lines).wrap(Wrap { trim: false }).block(
         Block::default()
             .borders(Borders::ALL)
             .title_top("Details for reminder..."),
+    )
+}
+
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
+}
+
+pub fn draw(f: &mut Frame, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(1),
+            Constraint::Percentage(15),
+            Constraint::Length(1),
+        ])
+        .split(f.area());
+    let panes = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+        .split(chunks[0]);
+
+    draw_progress_pane(f, app, panes[0]);
+    draw_commitments_list_pane(f, app, panes[1]);
+    draw_detail_pane(f, app, chunks[1]);
+    draw_footer(f, app, chunks[2]);
+
+    // TODO: Draw editing related screen
+    match app.input_mode {
+        InputMode::LogHours => draw_log_overlay(f, app),
+        _ => {}
+    }
+}
+
+fn draw_log_overlay(f: &mut Frame, app: &mut App) {
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .title_bottom("Log Hours");
+    let area = popup_area(f.area(), 40, 40);
+    let inner = block.inner(area);
+
+    f.render_widget(Clear, area);
+    f.render_widget(block, area);
+
+    let Some(item) = app.selected_item() else {
+        f.render_widget(Paragraph::new("No Selected Item..."), inner);
+        return;
+    };
+
+    let (chunks, spacers) = Layout::vertical([
+        Constraint::Min(1),
+        Constraint::Percentage(80),
+        Constraint::Percentage(20),
+    ])
+    .horizontal_margin(1)
+    .spacing(2)
+    .split_with_spacers(inner);
+
+    // Draw the title
+    f.render_widget(
+        Span::styled(
+            format!("Logging for \"{}\" (#{})", item.0.name, item.0.id),
+            Style::default()
+                .bold()
+                .underlined()
+                .bg(tailwind::STONE.c900)
+                .fg(tailwind::ROSE.c500),
+        ),
+        chunks[0],
     );
+
+    // Draw a separator
+    draw_horizontal_separator(f, inner, spacers[1], '-');
+
+    // Display the details of the commitment
+    let summary = compute_history_summary(item.0.start_monday, item.0.weekly_target_hours, &item.1);
+    let widget = render_commitment_history_summary_as_paragraph(summary);
     f.render_widget(widget, chunks[1]);
 
     // TODO: Input Bar for Setting Log Amount
@@ -373,7 +400,7 @@ fn draw_detail_pane(f: &mut Frame, app: &App, area: Rect) {
     draw_history_summary(f, app, chunks[1]);
 
     // Draw the separator
-    draw_vertical_separator(f, inner, spacers[1]);
+    draw_vertical_separator(f, inner, spacers[1], '|');
 }
 
 fn draw_history_summary(f: &mut Frame, app: &App, area: Rect) {
