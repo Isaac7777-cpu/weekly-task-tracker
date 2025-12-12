@@ -9,6 +9,7 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{Terminal, prelude::CrosstermBackend};
+use serde::de::value;
 use sqlx::SqlitePool;
 
 use crate::app::{App, InputMode};
@@ -52,7 +53,8 @@ pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
 }
 
 async fn handle_key_event(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
-    // TODO: Make the TUI apps editable
+    // TODO: Make the apps editable (Editting the details of records + Adding / Removing Events)
+
     match app.input_mode {
         InputMode::Normal => handle_normal_mode(key, app).await,
         InputMode::LogHours => handle_log_hour_mode(key, app).await,
@@ -87,7 +89,7 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
         KeyCode::Char('l') => {
             if let Some(sel) = app.selected_item() {
                 if sel.0.active {
-                    app.input_mode = InputMode::LogHours;
+                    app.switch_state(InputMode::LogHours);
                 } else {
                     app.set_message("You can only log hours for activated items");
                 }
@@ -105,8 +107,12 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
 async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
     match key.code {
         KeyCode::Esc | KeyCode::Char('q') => {
-            app.input_mode = InputMode::Normal;
+            app.switch_state(InputMode::Normal);
         }
+        KeyCode::Char(value) => {
+            app.input_buffer.push(value);
+        }
+
         _ => {}
     }
 

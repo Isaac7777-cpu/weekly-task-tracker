@@ -25,6 +25,10 @@ impl fmt::Display for InputMode {
     }
 }
 
+const NORMAL_MSG: &str =
+    "q: quit | j/k: move | c: add commitment | l: log | r: reactivate | a: archive";
+const LOG_MSG: &str = "q/ESC: quit | numeric characters (0-9, .): Hours Input";
+
 pub struct App {
     pool: SqlitePool,
     items: Vec<CommitmentDisplayRecord>,
@@ -42,10 +46,9 @@ impl App {
             items: Vec::new(),
             list_state: ListState::default(),
             input_mode: InputMode::Normal,
-            input_buffer: String::new(),
-            message: String::from(
-                "q: quit | j/k: move | c: add commitment | l: log | r: reactivate | a: archive",
-            ),
+            // input_buffer: String::new(),
+            input_buffer: "Test".to_string(),
+            message: String::from(NORMAL_MSG),
             last_refresh: Instant::now(),
         };
         app.refresh_from_db().await?;
@@ -140,5 +143,23 @@ impl App {
             };
         };
         Ok(())
+    }
+
+    pub fn get_message(state: &InputMode) -> String {
+        match state {
+            InputMode::Normal => NORMAL_MSG.to_string(),
+            InputMode::LogHours => LOG_MSG.to_string(),
+        }
+    }
+
+    pub fn switch_state(&mut self, target_state: InputMode) {
+        self.message = App::get_message(&target_state);
+        match target_state {
+            InputMode::LogHours => {
+                self.input_buffer = String::new();
+            }
+            _ => {}
+        }
+        self.input_mode = target_state;
     }
 }

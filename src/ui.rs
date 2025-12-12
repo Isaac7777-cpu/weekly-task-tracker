@@ -219,10 +219,21 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
 
     // Display the details of the commitment
     let summary = compute_history_summary(item.0.start_monday, item.0.weekly_target_hours, &item.1);
-    let widget = render_commitment_history_summary_as_paragraph(summary);
-    f.render_widget(widget, chunks[1]);
+    let details_widget = render_commitment_history_summary_as_paragraph(summary);
+    f.render_widget(details_widget, chunks[1]);
 
     // TODO: Input Bar for Setting Log Amount
+    f.render_widget(
+        Span::styled(
+            format!("Amount: {}", app.input_buffer),
+            Style::default()
+                .bold()
+                .underlined()
+                .bg(tailwind::STONE.c900)
+                .fg(tailwind::ROSE.c500),
+        ),
+        chunks[2],
+    );
 }
 
 fn draw_progress_pane(f: &mut Frame, app: &App, area: Rect) {
