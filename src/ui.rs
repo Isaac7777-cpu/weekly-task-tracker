@@ -243,10 +243,13 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
     f.render_widget(details_widget, chunks[1]);
 
     f.render_widget(
-        Paragraph::new(Span::styled(
-            app.input_buffer.clone(),
-            Style::default().bold().underlined(),
-        ))
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                app.input_buffer.clone(),
+                Style::default().bold().underlined(),
+            ),
+            Span::styled(" ◁", Style::default().bold()),
+        ]))
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -534,7 +537,7 @@ fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
     );
 
     f.render_widget(
-        Paragraph::new(app.message.clone()).wrap(Wrap { trim: true }),
+        Paragraph::new(app.get_message().clone()).wrap(Wrap { trim: true }),
         chunks[1],
     );
 }

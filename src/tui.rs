@@ -9,7 +9,6 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{Terminal, prelude::CrosstermBackend};
-use serde::de::value;
 use sqlx::SqlitePool;
 
 use crate::app::{App, InputMode};
@@ -111,9 +110,23 @@ async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Re
             app.switch_state(InputMode::Normal);
         }
         KeyCode::Char(value) => {
-            app.input_buffer.push(value);
-        }
+            if value == 'u' && key.modifiers.contains(KeyModifiers::CONTROL) {
+                app.input_buffer.clear();
+            }
 
+            if value.is_numeric() || value == '.' {
+                app.input_buffer.push(value);
+                if !app.input_buffer.is_empty() && app.input_buffer.parse::<f64>().is_err() {
+                    app.set_message("Please input numeric values.");
+                    app.input_buffer.pop();
+                }
+            } else {
+                app.set_message("Please input numeric values.");
+            }
+        }
+        KeyCode::Backspace => {
+            app.input_buffer.pop();
+        }
         _ => {}
     }
 
