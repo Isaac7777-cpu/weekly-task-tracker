@@ -52,6 +52,7 @@ migrations/
 - [ ] Integrate with `neovim` / `vim`
 - [ ] Export data to CSV
 - [x] Graph weekly progress (e.g., via `ratatui`)
+- [ ] Allow for having "Off-Weeks"
 - [ ] Sync across devices
 
 ---
