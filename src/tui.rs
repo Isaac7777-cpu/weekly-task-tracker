@@ -105,6 +105,7 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
 }
 
 async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
+    // TODO: Correctly take the input
     match key.code {
         KeyCode::Esc | KeyCode::Char('q') => {
             app.switch_state(InputMode::Normal);

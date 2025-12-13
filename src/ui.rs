@@ -96,6 +96,7 @@ fn render_commitment_history_summary_as_paragraph(summary: HistorySummary) -> Pa
         "On track".to_string()
     };
     let lines = vec![
+        Line::from(""),
         Line::from(vec![
             Span::styled(
                 "Start Monday: ",
@@ -112,11 +113,28 @@ fn render_commitment_history_summary_as_paragraph(summary: HistorySummary) -> Pa
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Required: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Weekly Target:  ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "{:.1} h",
+                summary.total_required / (summary.weeks_passed as f64) + 0.0
+            )),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled(
+                "Required:        ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
             Span::raw(format!("{:.1} h", summary.total_required)),
         ]),
         Line::from(vec![
-            Span::styled("Done:     ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Done:            ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
             Span::raw(format!("{:.1} h", summary.total_done + 0.0)),
         ]),
         Line::from(""),
@@ -135,11 +153,13 @@ fn render_commitment_history_summary_as_paragraph(summary: HistorySummary) -> Pa
             ),
             Span::raw(status_text),
         ]),
+        Line::from(""),
     ];
     Paragraph::new(lines).wrap(Wrap { trim: false }).block(
         Block::default()
             .borders(Borders::ALL)
-            .title_top("Details for reminder..."),
+            .title_bottom("Details for reminder")
+            .title_style(Modifier::UNDERLINED),
     )
 }
 
@@ -181,7 +201,7 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .title_bottom("Log Hours");
-    let area = popup_area(f.area(), 40, 40);
+    let area = popup_area(f.area(), 40, 39);
     let inner = block.inner(area);
 
     f.render_widget(Clear, area);
@@ -194,8 +214,8 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
 
     let (chunks, spacers) = Layout::vertical([
         Constraint::Min(1),
-        Constraint::Percentage(80),
-        Constraint::Percentage(20),
+        Constraint::Length(13),
+        Constraint::Length(3),
     ])
     .horizontal_margin(1)
     .spacing(2)
@@ -222,15 +242,16 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
     let details_widget = render_commitment_history_summary_as_paragraph(summary);
     f.render_widget(details_widget, chunks[1]);
 
-    // TODO: Input Bar for Setting Log Amount
     f.render_widget(
-        Span::styled(
-            format!("Amount: {}", app.input_buffer),
-            Style::default()
-                .bold()
-                .underlined()
-                .bg(tailwind::STONE.c900)
-                .fg(tailwind::ROSE.c500),
+        Paragraph::new(Span::styled(
+            app.input_buffer.clone(),
+            Style::default().bold().underlined(),
+        ))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Amount:")
+                .border_type(BorderType::Rounded),
         ),
         chunks[2],
     );
