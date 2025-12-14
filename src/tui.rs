@@ -11,7 +11,10 @@ use crossterm::{
 use ratatui::{Terminal, prelude::CrosstermBackend};
 use sqlx::SqlitePool;
 
-use crate::app::{App, InputMode};
+use crate::{
+    app::{App, InputMode},
+    db::log_record_id,
+};
 
 pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
     enable_raw_mode()?;
@@ -86,7 +89,7 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
             app.archive_selected().await?;
         }
         KeyCode::Char('l') => {
-            if let Some(sel) = app.selected_item() {
+            if let Some(sel) = app.get_selected_item() {
                 if sel.0.active {
                     app.switch_state(InputMode::LogHours);
                 } else {
@@ -116,7 +119,7 @@ async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Re
 
             if value.is_numeric() || value == '.' {
                 app.input_buffer.push(value);
-                if !app.input_buffer.is_empty() && app.input_buffer.parse::<f64>().is_err() {
+                if !app.input_buffer.is_empty() && app.input_buffer.parse::<f32>().is_err() {
                     app.set_message("Please input numeric values.");
                     app.input_buffer.pop();
                 }
@@ -129,7 +132,25 @@ async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Re
         }
         KeyCode::Enter => {
             // TODO: Have it to be logged
-            app.set_message("Saving to database not implemented yet...");
+            app.set_message("Your request is being processed...");
+
+            let id = app.get_selected_item().unwrap().0.id;
+
+            let log_result =
+                log_record_id(app.get_pool(), id, app.input_buffer.parse::<f32>().unwrap()).await;
+
+            match log_result {
+                Ok(id) => {
+                    app.set_message(format!("Logging to #{id} is successful."));
+                    app.mark_dirty(true);
+                    app.switch_state(InputMode::Normal);
+                }
+                Err(e) => {
+                    app.set_message(format!("Logging to #{id} is unsuccessful because {e}."));
+                }
+            };
+
+            app.refresh_from_db_if_dirty().await?;
         }
         _ => {}
     }

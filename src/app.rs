@@ -33,6 +33,7 @@ pub struct App {
     pool: SqlitePool,
     items: Vec<CommitmentDisplayRecord>,
     message: String,
+    dirty_flag: bool,
     pub input_buffer: String,
     pub list_state: ListState,
     pub input_mode: InputMode,
@@ -44,11 +45,11 @@ impl App {
         let mut app = Self {
             pool: pool,
             items: Vec::new(),
+            message: String::from(NORMAL_MSG),
+            dirty_flag: false,
             list_state: ListState::default(),
             input_mode: InputMode::Normal,
-            // input_buffer: String::new(),
-            input_buffer: "Test".to_string(),
-            message: String::from(NORMAL_MSG),
+            input_buffer: String::new(),
             last_refresh: Instant::now(),
         };
         app.refresh_from_db().await?;
@@ -58,7 +59,7 @@ impl App {
         Ok(app)
     }
 
-    pub async fn refresh_from_db(&mut self) -> anyhow::Result<()> {
+    async fn refresh_from_db(&mut self) -> anyhow::Result<()> {
         let commitments_with_progs = list_all_commitments_with_week_progress(&self.pool).await?;
 
         self.items.clear();
@@ -74,18 +75,46 @@ impl App {
         Ok(())
     }
 
-    pub fn selected_index(&self) -> Option<usize> {
+    /// Refresh from database if the dirty key is set.
+    ///
+    /// Only expose this function to avoid people spamming the refresh APIs.
+    pub async fn refresh_from_db_if_dirty(&mut self) -> anyhow::Result<bool> {
+        if self.dirty_flag {
+            self.dirty_flag = false;
+            return self.refresh_from_db().await.map(|_| true);
+        };
+        Ok(false)
+    }
+
+    /// Get the currently selected item index as the index in the list
+    ///
+    /// Normally you should consider using [`Self::get_selected_item()`] for getting the log item
+    /// itself.
+    pub fn get_selected_index(&self) -> Option<usize> {
         self.list_state.selected()
     }
 
+    /// Set the message that is displayed in the footer
     pub fn set_message<S: Into<String>>(&mut self, msg: S) {
         self.message = msg.into();
     }
 
-    pub fn selected_item(&self) -> Option<&CommitmentDisplayRecord> {
-        self.selected_index().and_then(|idx| self.items.get(idx))
+    /// Mark the dirty flag so that when using [`Self::refresh_from_db_if_dirty()`] would refresh
+    /// the data.
+    ///
+    /// The intended usage for this function is when operations in the applications causes chanes
+    /// to data.
+    pub fn mark_dirty(&mut self, flag: bool) {
+        self.dirty_flag = flag;
     }
 
+    /// Get the selected item along of with its historic record
+    pub fn get_selected_item(&self) -> Option<&CommitmentDisplayRecord> {
+        self.get_selected_index()
+            .and_then(|idx| self.items.get(idx))
+    }
+
+    /// Get all the items
     pub fn get_items(&self) -> &[CommitmentDisplayRecord] {
         &self.items
     }
@@ -94,8 +123,13 @@ impl App {
         &self.message
     }
 
+    /// Get the connection pool to the sqlite database for backend oeprations
+    pub fn get_pool(&self) -> &SqlitePool {
+        &self.pool
+    }
+
     pub fn next(&mut self) {
-        let i = match self.selected_index() {
+        let i = match self.get_selected_index() {
             Some(i) if !self.items.is_empty() => (i + 1) % self.items.len(),
             _ => 0,
         };
@@ -108,7 +142,7 @@ impl App {
             self.list_state.select(None);
             return;
         }
-        let i = match self.selected_index() {
+        let i = match self.get_selected_index() {
             Some(0) | None => len - 1,
             Some(i) => i - 1,
         };
@@ -128,7 +162,7 @@ impl App {
     }
 
     pub async fn reactivate_selected(&mut self) -> anyhow::Result<()> {
-        if let Some(sel) = self.selected_item() {
+        if let Some(sel) = self.get_selected_item() {
             if !sel.0.active {
                 crate::db::reactivate_commiment(&self.pool, sel.0.id).await?;
                 self.set_message(format!("Reactivated #{}", sel.0.id));
@@ -139,7 +173,7 @@ impl App {
     }
 
     pub async fn archive_selected(&mut self) -> anyhow::Result<()> {
-        if let Some(sel) = self.selected_item() {
+        if let Some(sel) = self.get_selected_item() {
             if sel.0.active {
                 crate::db::archive_commiment(&self.pool, sel.0.id).await?;
                 self.set_message(format!("Archived #{}", sel.0.id));
@@ -149,6 +183,11 @@ impl App {
         Ok(())
     }
 
+    /// This set the generat input guidance.
+    ///
+    /// # TODO:
+    ///   Later we should have a split in the bottom with one side displaying key mappings while
+    ///   the other displays the immediate message.
     pub fn get_input_help_msg(state: &InputMode) -> String {
         match state {
             InputMode::Normal => NORMAL_MSG.to_string(),

@@ -207,7 +207,7 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
     f.render_widget(Clear, area);
     f.render_widget(block, area);
 
-    let Some(item) = app.selected_item() else {
+    let Some(item) = app.get_selected_item() else {
         f.render_widget(Paragraph::new("No Selected Item..."), inner);
         return;
     };
@@ -378,7 +378,7 @@ fn draw_detail_pane(f: &mut Frame, app: &App, area: Rect) {
         .spacing(2)
         .split_with_spacers(inner);
 
-    let Some(selected) = app.selected_item() else {
+    let Some(selected) = app.get_selected_item() else {
         let p =
             Paragraph::new("No commitment selected").style(Style::default().fg(Color::DarkGray));
         f.render_widget(p, inner);
@@ -439,7 +439,7 @@ fn draw_detail_pane(f: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_history_summary(f: &mut Frame, app: &App, area: Rect) {
-    let Some(selected) = app.selected_item() else {
+    let Some(selected) = app.get_selected_item() else {
         // nothing selected – draw placeholder
         let placeholder = Paragraph::new("No commitment selected").wrap(Wrap { trim: true });
         f.render_widget(placeholder, area);
