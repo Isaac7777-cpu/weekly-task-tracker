@@ -72,7 +72,7 @@ Thanks for your interest in contributing! All contributions are welcome — whet
    cargo install sqlx-cli
    sqlx run migrations
    ```
-   Note that currently the project relies on a relative path to find the database (terrible idea, happy to take PR), so you have to run `cargo run` in the top level directory and you should / can use `sqlx create database` to create the database.
+   Note that currently the project relies on a relative path to find the database (terrible idea, happy to take PR), so you have to run `cargo run` in the top level directory, and you should / can use `sqlx create database` to create the database.
 
 This Project uses Rust's standard formatting (`rustfmt`), please use this formatting for the project.
 

@@ -127,6 +127,10 @@ async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Re
         KeyCode::Backspace => {
             app.input_buffer.pop();
         }
+        KeyCode::Enter => {
+            // TODO: Have it to be logged
+            app.set_message("Saving to database not implemented yet...");
+        }
         _ => {}
     }
 
