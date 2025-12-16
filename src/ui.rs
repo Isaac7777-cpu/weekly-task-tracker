@@ -192,8 +192,13 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     // TODO: Draw other editing related screen
     match app.input_mode {
+        InputMode::Normal => {}
         InputMode::LogHours => draw_log_overlay(f, app),
-        _ => {}
+
+        // TODO: Implement the UI
+        InputMode::CreateCommitment => {
+            app.set_message("Create Commitment UI have not been implemented");
+        }
     }
 }
 
@@ -516,6 +521,7 @@ impl InputMode {
         match self {
             InputMode::Normal => Style::default().bg(tailwind::PURPLE.c800),
             InputMode::LogHours => Style::default().bg(tailwind::CYAN.c800),
+            InputMode::CreateCommitment => Style::default().bg(tailwind::EMERALD.c800),
         }
     }
 }

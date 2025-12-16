@@ -14,6 +14,7 @@ pub type CommitmentDisplayRecord = (CommitmentWithProgress, Vec<WeeklyStat>);
 pub enum InputMode {
     Normal,
     LogHours,
+    CreateCommitment,
 }
 
 impl fmt::Display for InputMode {
@@ -21,13 +22,17 @@ impl fmt::Display for InputMode {
         match self {
             InputMode::Normal => write!(f, "NORMAL"),
             InputMode::LogHours => write!(f, "LOG HOUR"),
+            InputMode::CreateCommitment => write!(f, "CREATE"),
         }
     }
 }
 
-const NORMAL_KEY_MAPS: &str =
+const NORMAL_MODE_KEY_MAPS_HINT: &str =
     "q: quit | j/k: move | c: add commitment | l: log | r: reactivate | a: archive";
-const LOG_KEY_MAPS: &str = "q/esc: quit | numeric characters (0-9, .): Hours Input | ctrl-u: clear";
+const LOG_MODE_KEY_MAPS_HINT: &str =
+    "esc: quit | numeric characters (0-9, .): Hours Input | ctrl-u: clear";
+const CREATE_MODE_COMMITMENT_KEY_MAPS_HINT: &str =
+    "esc: quit | <TAB/S-TAB> or <Arrows> to change fields | ctrl-u: clear | characters: Input";
 
 pub struct App {
     pool: SqlitePool,
@@ -47,7 +52,7 @@ impl App {
             pool: pool,
             items: Vec::new(),
             quick_msg: String::from("Welcome!"),
-            keymap_msg: String::from(NORMAL_KEY_MAPS),
+            keymap_msg: String::from(NORMAL_MODE_KEY_MAPS_HINT),
             dirty_flag: false,
             list_state: ListState::default(),
             input_mode: InputMode::Normal,
@@ -192,12 +197,13 @@ impl App {
     /// This set the generat input guidance.
     pub fn get_input_help_msg(state: &InputMode) -> &str {
         match state {
-            InputMode::Normal => NORMAL_KEY_MAPS,
-            InputMode::LogHours => LOG_KEY_MAPS,
+            InputMode::Normal => NORMAL_MODE_KEY_MAPS_HINT,
+            InputMode::LogHours => LOG_MODE_KEY_MAPS_HINT,
+            InputMode::CreateCommitment => CREATE_MODE_COMMITMENT_KEY_MAPS_HINT,
         }
     }
 
-    pub fn switch_state(&mut self, target_state: InputMode) {
+    pub fn switch_input_mode(&mut self, target_state: InputMode) {
         self.keymap_msg = App::get_input_help_msg(&target_state).to_string();
         match target_state {
             InputMode::LogHours => {

@@ -56,16 +56,16 @@ pub async fn run_tui(pool: SqlitePool) -> anyhow::Result<()> {
 
 async fn handle_key_event(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
     // TODO: Make the apps editable (Editting the details of records + Adding / Removing Events)
+    // TODO: Make the operations on the UI be non-blocking
 
     match app.input_mode {
         InputMode::Normal => handle_normal_mode(key, app).await,
         InputMode::LogHours => handle_log_hour_mode(key, app).await,
-        // _ => Ok(false),
+        InputMode::CreateCommitment => handle_edit_commitment_mode(key, app).await,
     }
 }
 
-async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
-    // TODO: Make the operations on the UI be non-blocking
+async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> Result<bool, anyhow::Error> {
     match key.code {
         KeyCode::Char('q') => {
             return Ok(true);
@@ -91,7 +91,7 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
         KeyCode::Char('l') => {
             if let Some(sel) = app.get_selected_item() {
                 if sel.0.active {
-                    app.switch_state(InputMode::LogHours);
+                    app.switch_input_mode(InputMode::LogHours);
                 } else {
                     app.set_message("You can only log hours for activated items");
                 }
@@ -99,6 +99,7 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
         }
         KeyCode::Char('c') => {
             app.set_message("New commitment name: (Enter to confirm, ESC to cancel)");
+            app.switch_input_mode(InputMode::CreateCommitment);
         }
         _ => {}
     };
@@ -106,11 +107,10 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Resu
     Ok(false)
 }
 
-async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Result<bool> {
-    // TODO: Correctly take the input
+async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> Result<bool, anyhow::Error> {
     match key.code {
-        KeyCode::Esc | KeyCode::Char('q') => {
-            app.switch_state(InputMode::Normal);
+        KeyCode::Esc => {
+            app.switch_input_mode(InputMode::Normal);
         }
         KeyCode::Char(value) => {
             if value == 'u' && key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -131,7 +131,6 @@ async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Re
             app.input_buffer.pop();
         }
         KeyCode::Enter => {
-            // TODO: Have it to be logged
             app.set_message("Your request is being processed...");
 
             let id = app.get_selected_item().unwrap().0.id;
@@ -143,7 +142,7 @@ async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Re
                 Ok(id) => {
                     app.set_message(format!("Logging to #{id} is successful."));
                     app.mark_dirty(true);
-                    app.switch_state(InputMode::Normal);
+                    app.switch_input_mode(InputMode::Normal);
                 }
                 Err(e) => {
                     app.set_message(format!("Logging to #{id} is unsuccessful because {e}."));
@@ -155,5 +154,20 @@ async fn handle_log_hour_mode(key: event::KeyEvent, app: &mut App) -> anyhow::Re
         _ => {}
     }
 
-    return Ok(false);
+    Ok(false)
+}
+
+async fn handle_edit_commitment_mode(
+    key: event::KeyEvent,
+    app: &mut App,
+) -> Result<bool, anyhow::Error> {
+    match key.code {
+        KeyCode::Esc => {
+            app.switch_input_mode(InputMode::Normal);
+            app.set_message("Going back to Normal mode...");
+        }
+        _ => {}
+    }
+
+    Ok(false)
 }
