@@ -190,7 +190,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_detail_pane(f, app, chunks[1]);
     draw_footer(f, app, chunks[2]);
 
-    // TODO: Draw editing related screen
+    // TODO: Draw other editing related screen
     match app.input_mode {
         InputMode::LogHours => draw_log_overlay(f, app),
         _ => {}
@@ -521,11 +521,13 @@ impl InputMode {
 }
 
 fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
-    // TODO: Implement the hint
-
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Max(12), Constraint::Fill(1)])
+        .constraints([
+            Constraint::Max(12),
+            Constraint::Fill(2),
+            Constraint::Fill(3),
+        ])
         .split(area);
 
     f.render_widget(
@@ -537,7 +539,16 @@ fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
     );
 
     f.render_widget(
-        Paragraph::new(app.get_message().clone()).wrap(Wrap { trim: true }),
+        Paragraph::new(app.get_quick_msg())
+            .wrap(Wrap { trim: true })
+            .style(Style::default().fg(tailwind::RED.c300)),
         chunks[1],
+    );
+
+    f.render_widget(
+        Paragraph::new(app.get_keymap_msg())
+            .wrap(Wrap { trim: true })
+            .style(Style::default().fg(tailwind::GRAY.c100)),
+        chunks[2],
     );
 }

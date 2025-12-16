@@ -25,14 +25,15 @@ impl fmt::Display for InputMode {
     }
 }
 
-const NORMAL_MSG: &str =
+const NORMAL_KEY_MAPS: &str =
     "q: quit | j/k: move | c: add commitment | l: log | r: reactivate | a: archive";
-const LOG_MSG: &str = "q/esc: quit | numeric characters (0-9, .): Hours Input | ctrl-u: clear";
+const LOG_KEY_MAPS: &str = "q/esc: quit | numeric characters (0-9, .): Hours Input | ctrl-u: clear";
 
 pub struct App {
     pool: SqlitePool,
     items: Vec<CommitmentDisplayRecord>,
-    message: String,
+    quick_msg: String,
+    keymap_msg: String,
     dirty_flag: bool,
     pub input_buffer: String,
     pub list_state: ListState,
@@ -45,7 +46,8 @@ impl App {
         let mut app = Self {
             pool: pool,
             items: Vec::new(),
-            message: String::from(NORMAL_MSG),
+            quick_msg: String::from("Welcome!"),
+            keymap_msg: String::from(NORMAL_KEY_MAPS),
             dirty_flag: false,
             list_state: ListState::default(),
             input_mode: InputMode::Normal,
@@ -96,7 +98,7 @@ impl App {
 
     /// Set the message that is displayed in the footer
     pub fn set_message<S: Into<String>>(&mut self, msg: S) {
-        self.message = msg.into();
+        self.quick_msg = msg.into();
     }
 
     /// Mark the dirty flag so that when using [`Self::refresh_from_db_if_dirty()`] would refresh
@@ -119,8 +121,12 @@ impl App {
         &self.items
     }
 
-    pub fn get_message(&self) -> &String {
-        &self.message
+    pub fn get_quick_msg(&self) -> &str {
+        self.quick_msg.as_str()
+    }
+
+    pub fn get_keymap_msg(&self) -> &str {
+        self.keymap_msg.as_str()
     }
 
     /// Get the connection pool to the sqlite database for backend oeprations
@@ -184,19 +190,15 @@ impl App {
     }
 
     /// This set the generat input guidance.
-    ///
-    /// # TODO:
-    ///   Later we should have a split in the bottom with one side displaying key mappings while
-    ///   the other displays the immediate message.
-    pub fn get_input_help_msg(state: &InputMode) -> String {
+    pub fn get_input_help_msg(state: &InputMode) -> &str {
         match state {
-            InputMode::Normal => NORMAL_MSG.to_string(),
-            InputMode::LogHours => LOG_MSG.to_string(),
+            InputMode::Normal => NORMAL_KEY_MAPS,
+            InputMode::LogHours => LOG_KEY_MAPS,
         }
     }
 
     pub fn switch_state(&mut self, target_state: InputMode) {
-        self.message = App::get_input_help_msg(&target_state);
+        self.keymap_msg = App::get_input_help_msg(&target_state).to_string();
         match target_state {
             InputMode::LogHours => {
                 self.input_buffer = String::new();
