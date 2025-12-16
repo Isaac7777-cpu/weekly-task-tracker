@@ -22,10 +22,9 @@ The project uses **SQLite** and **SQLx** for async database access, along with *
 src/
 │
 ├ # CLI parts with application backends (database parts)
-├── cli.rs # Command-line argument definitions (Clap)
 ├── db.rs # Database setup + SQLx queries
 ├── main.rs # Entry point + routing commands
-├── models.rs # Structs representing DB rows
+├── model.rs # Structs representing DB rows
 ├── cli.rs # Command-line argument definitions (Clap)
 │
 ├ # TUI part, vaguely follow MVC architecture but also uses the above database as the 'backend'
