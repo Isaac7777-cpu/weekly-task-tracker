@@ -196,9 +196,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         InputMode::LogHours => draw_log_overlay(f, app),
 
         // TODO: Implement the UI
-        InputMode::CreateCommitment => {
-            app.set_message("Create Commitment UI have not been implemented");
-        }
+        InputMode::CreateCommitment => draw_create_commitment_overlay(f, app),
     }
 }
 
@@ -267,6 +265,21 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
         ),
         chunks[2],
     );
+}
+
+fn draw_create_commitment_overlay(f: &mut Frame, app: &mut App) {
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .title_bottom("Create Commitment");
+    let area = popup_area(
+        f.area(),
+        Constraint::Percentage(40),
+        Constraint::Length(39),
+    );
+    let _inner = block.inner(area);
+
+    f.render_widget(Clear, area);
+    f.render_widget(block, area);
 }
 
 fn draw_progress_pane(f: &mut Frame, app: &App, area: Rect) {
