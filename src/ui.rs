@@ -163,9 +163,9 @@ fn render_commitment_history_summary_as_paragraph(summary: HistorySummary) -> Pa
     )
 }
 
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+fn popup_area(area: Rect, constraint_x: Constraint, constraint_y: Constraint) -> Rect {
+    let vertical = Layout::vertical([constraint_y]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([constraint_x]).flex(Flex::Center);
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
     area
@@ -206,7 +206,11 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .title_bottom("Log Hours");
-    let area = popup_area(f.area(), 40, 39);
+    let area = popup_area(
+        f.area(),
+        Constraint::Percentage(40),
+        Constraint::Length(22),
+    );
     let inner = block.inner(area);
 
     f.render_widget(Clear, area);
