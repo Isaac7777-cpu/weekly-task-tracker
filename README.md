@@ -3,6 +3,8 @@
 A lightweight CLI tool written in **Rust** for tracking weekly commitments, logging progress, and maintaining a history of personal productivity.  
 The project uses **SQLite** and **SQLx** for async database access, along with **Clap** for command-line parsing.
 
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/Isaac7777-cpu/weekly-task-tracker?style=for-the-badge)
+
 ---
 
 ## ✨ Features
