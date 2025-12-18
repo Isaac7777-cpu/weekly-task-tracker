@@ -4,7 +4,7 @@ A lightweight CLI tool written in **Rust** for tracking weekly commitments, logg
 The project uses **SQLite** and **SQLx** for async database access, along with **Clap** for command-line parsing.
 
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/Isaac7777-cpu/weekly-task-tracker?style=for-the-badge)
-![GitHub contributors](https://img.shields.io/github/contributors/Isaac7777-cpu/weekly-task-tracker?style=for-the-badge)
+![GitHub contributors](https://img.shields.io/github/contributors/Isaac7777-cpu/weekly-task-tracker?style=for-the-badge&labelColor=%23241908&color=%23ad5700&cacheSeconds=0.1)
 ![GitHub last commit](https://img.shields.io/github/last-commit/Isaac7777-cpu/weekly-task-tracker?style=for-the-badge&labelColor=%232f332f&color=%235e7f6a)
 ![GitHub License](https://img.shields.io/github/license/Isaac7777-cpu/weekly-task-tracker?style=for-the-badge&labelColor=%232f2b36&color=%235c6bc0&cacheSeconds=0.1)
 
