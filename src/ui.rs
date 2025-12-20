@@ -13,7 +13,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{App, CommitmentDisplayRecord, InputMode},
+    app::{App, CommitmentDisplayRecord, CreateCommitmentInputField, InputMode},
     model::WeeklyStat,
     util::get_monday_this_week,
 };
@@ -196,7 +196,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         InputMode::LogHours => draw_log_overlay(f, app),
 
         // TODO: Implement the UI
-        InputMode::CreateCommitment => draw_create_commitment_overlay(f, app),
+        InputMode::CreateCommitment(_) => draw_create_commitment_overlay(f, app),
     }
 }
 
@@ -204,11 +204,7 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .title_bottom("Log Hours");
-    let area = popup_area(
-        f.area(),
-        Constraint::Percentage(40),
-        Constraint::Length(22),
-    );
+    let area = popup_area(f.area(), Constraint::Percentage(40), Constraint::Length(22));
     let inner = block.inner(area);
 
     f.render_widget(Clear, area);
@@ -271,11 +267,7 @@ fn draw_create_commitment_overlay(f: &mut Frame, app: &mut App) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .title_bottom("Create Commitment");
-    let area = popup_area(
-        f.area(),
-        Constraint::Percentage(40),
-        Constraint::Length(39),
-    );
+    let area = popup_area(f.area(), Constraint::Percentage(40), Constraint::Length(39));
     let _inner = block.inner(area);
 
     f.render_widget(Clear, area);
@@ -538,7 +530,7 @@ impl InputMode {
         match self {
             InputMode::Normal => Style::default().bg(tailwind::PURPLE.c800),
             InputMode::LogHours => Style::default().bg(tailwind::CYAN.c800),
-            InputMode::CreateCommitment => Style::default().bg(tailwind::EMERALD.c800),
+            InputMode::CreateCommitment(_) => Style::default().bg(tailwind::EMERALD.c800),
         }
     }
 }

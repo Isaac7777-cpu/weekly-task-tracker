@@ -11,10 +11,16 @@ use crate::{
 pub type CommitmentDisplayRecord = (CommitmentWithProgress, Vec<WeeklyStat>);
 
 #[derive(Debug, Clone)]
+pub enum CreateCommitmentInputField {
+    Name,
+    TargetHour,
+}
+
+#[derive(Debug, Clone)]
 pub enum InputMode {
     Normal,
     LogHours,
-    CreateCommitment,
+    CreateCommitment(CreateCommitmentInputField),
 }
 
 impl fmt::Display for InputMode {
@@ -22,7 +28,7 @@ impl fmt::Display for InputMode {
         match self {
             InputMode::Normal => write!(f, "NORMAL"),
             InputMode::LogHours => write!(f, "LOG HOUR"),
-            InputMode::CreateCommitment => write!(f, "CREATE"),
+            InputMode::CreateCommitment(_) => write!(f, "CREATE"),
         }
     }
 }
@@ -199,7 +205,7 @@ impl App {
         match state {
             InputMode::Normal => NORMAL_MODE_KEY_MAPS_HINT,
             InputMode::LogHours => LOG_MODE_KEY_MAPS_HINT,
-            InputMode::CreateCommitment => CREATE_MODE_COMMITMENT_KEY_MAPS_HINT,
+            InputMode::CreateCommitment(_) => CREATE_MODE_COMMITMENT_KEY_MAPS_HINT,
         }
     }
 

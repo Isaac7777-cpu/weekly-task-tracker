@@ -12,7 +12,7 @@ use ratatui::{Terminal, prelude::CrosstermBackend};
 use sqlx::SqlitePool;
 
 use crate::{
-    app::{App, InputMode},
+    app::{App, CreateCommitmentInputField, InputMode},
     db::log_record_id,
 };
 
@@ -61,7 +61,7 @@ async fn handle_key_event(key: event::KeyEvent, app: &mut App) -> anyhow::Result
     match app.input_mode {
         InputMode::Normal => handle_normal_mode(key, app).await,
         InputMode::LogHours => handle_log_hour_mode(key, app).await,
-        InputMode::CreateCommitment => handle_edit_commitment_mode(key, app).await,
+        InputMode::CreateCommitment(_) => handle_edit_commitment_mode(key, app).await,
     }
 }
 
@@ -99,7 +99,9 @@ async fn handle_normal_mode(key: event::KeyEvent, app: &mut App) -> Result<bool,
         }
         KeyCode::Char('c') => {
             app.set_message("New commitment name: (Enter to confirm, ESC to cancel)");
-            app.switch_input_mode(InputMode::CreateCommitment);
+            app.switch_input_mode(InputMode::CreateCommitment(
+                CreateCommitmentInputField::Name,
+            ));
         }
         _ => {}
     };
