@@ -52,6 +52,8 @@ migrations/
 - [x] Archive commitments
 - [x] Reactivate archived commitments
 - [x] View current week progress (per commitment + total)
+- [ ] Add new commitment with TUI
+- [ ] Edit old commitment with TUI
 - [ ] Add Testing for the Functionalities
 - [ ] Add TUI mode using `ratatui` (Mostly Done)
 - [ ] Integrate with `neovim` / `vim`
