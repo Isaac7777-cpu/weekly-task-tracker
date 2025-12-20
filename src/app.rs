@@ -47,6 +47,7 @@ pub struct App {
     keymap_msg: String,
     dirty_flag: bool,
     pub input_buffer: String,
+    pub input_buffer_1: String,
     pub list_state: ListState,
     pub input_mode: InputMode,
     pub last_refresh: Instant,
@@ -63,6 +64,7 @@ impl App {
             list_state: ListState::default(),
             input_mode: InputMode::Normal,
             input_buffer: String::new(),
+            input_buffer_1: String::new(),
             last_refresh: Instant::now(),
         };
         app.refresh_from_db().await?;
@@ -214,6 +216,10 @@ impl App {
         match target_state {
             InputMode::LogHours => {
                 self.input_buffer = String::new();
+            }
+            InputMode::CreateCommitment(_) => {
+                self.input_buffer = String::new();
+                self.input_buffer_1 = String::new();
             }
             _ => {}
         }

@@ -248,7 +248,7 @@ fn draw_log_overlay(f: &mut Frame, app: &mut App) {
     f.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled(
-                app.input_buffer.clone(),
+                app.input_buffer.as_str(),
                 Style::default().bold().underlined(),
             ),
             Span::styled(" ◁", Style::default().bold()),
@@ -267,11 +267,60 @@ fn draw_create_commitment_overlay(f: &mut Frame, app: &mut App) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .title_bottom("Create Commitment");
-    let area = popup_area(f.area(), Constraint::Percentage(40), Constraint::Length(39));
-    let _inner = block.inner(area);
+    let area = popup_area(f.area(), Constraint::Percentage(40), Constraint::Length(10));
+    let inner = block.inner(area);
 
     f.render_widget(Clear, area);
     f.render_widget(block, area);
+
+    let (chunks, _) = Layout::vertical([Constraint::Fill(1), Constraint::Fill(1)])
+        .horizontal_margin(1)
+        .spacing(1)
+        .split_with_spacers(inner);
+
+    f.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                app.input_buffer.as_str(),
+                Style::default().bold().underlined(),
+            ),
+            if let InputMode::CreateCommitment(CreateCommitmentInputField::Name) = app.input_mode {
+                Span::styled(" ◁", Style::default().bold())
+            } else {
+                Span::raw("")
+            },
+        ]))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Name:")
+                .border_type(BorderType::Rounded),
+        ),
+        chunks[0],
+    );
+
+    f.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                app.input_buffer.as_str(),
+                Style::default().bold().underlined(),
+            ),
+            if let InputMode::CreateCommitment(CreateCommitmentInputField::TargetHour) =
+                app.input_mode
+            {
+                Span::styled(" ◁", Style::default().bold())
+            } else {
+                Span::raw("")
+            },
+        ]))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Target Hour:")
+                .border_type(BorderType::Rounded),
+        ),
+        chunks[1],
+    );
 }
 
 fn draw_progress_pane(f: &mut Frame, app: &App, area: Rect) {
