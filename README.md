@@ -90,3 +90,5 @@ This Project uses Rust's standard formatting (`rustfmt`), please use this format
 <p align="center">
   <img src="https://github-readme-tech-stack.vercel.app/api/cards?title=Weekly+Commitment+Tracker+Tech+Stack&align=center&titleAlign=center&fontSize=20&lineHeight=10&lineCount=2&theme=ayu&width=520&line1=rust,rust,DEA584;tokio,tokio,007ACC;clap,clap,FF7F2A;sqlx,sqlx,3A3A3A;&line2=sqlite,sqlite,003B57;ratatui,ratatui,FFC107;crossterm,crossterm,4A90E2;" alt="Tech Stack" />
 </p>
+
+![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
